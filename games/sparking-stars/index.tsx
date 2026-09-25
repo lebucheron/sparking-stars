@@ -1,0 +1,129 @@
+"use client";
+import { useEffect, useRef, useState, useMemo } from "react";
+import type { GameComponentProps } from "@rarefriends/friendsdk/runtime";
+import { getWorldPreset, validateWorld, project, type WorldPoint } from "@rarefriends/friendsdk/world";
+import { GameWorld } from "./circuit-world";
+import "@rarefriends/friendsdk/world-view.css";
+import "./style.css";
+
+import { terrains, distanceToRoute } from "./terrains";
+import {readFriendProfile} from "./friend-profile";
+import type {Cosmetic,Trail} from "./cosmetics";
+import {Leaderboard} from "./leaderboard";
+import {preciseTime,type Lap} from "./leaderboard-model";
+import {Shop} from "./shop";
+import {initialWallet,transact,raceReward,medalTargets,circuitDistance,labels,type Action,type Equipment,type Bonus} from "./shop-model";
+const noInteractions=[] as const;
+type Mode="training"|"free";
+type Race={countdown:number;next:number;elapsed:number;running:boolean;done:boolean};
+const fresh=():Race=>({countdown:0,next:1,elapsed:0,running:false,done:false});
+const time=preciseTime;
+export default function SparkingStars({friendId,client,paused}:GameComponentProps){
+  const [boardOpen,setBoardOpen]=useState(false),[laps,setLaps]=useState<Lap[]>([]);
+  const lapId=useRef(0);
+  const [trail,setTrail]=useState<Trail>("none");
+  const [personalBest,setPersonalBest]=useState<string|null>(null);
+  const [cosmetic,setCosmetic]=useState<Cosmetic>("none");
+  const [mode,setMode]=useState<Mode>("training"),[modesOpen,setModesOpen]=useState(false);
+  const [trainingEquipment,setTrainingEquipment]=useState<Equipment>("feet");
+  const [profile,setProfile]=useState<{generation:number;tier:number}|null>(null);
+  const [selected,setSelected]=useState(0),[choosing,setChoosing]=useState(false);
+  const terrain=terrains[selected], route=terrain.route, spawn=route[0];
+  const [wallet,setWallet]=useState(initialWallet), walletRef=useRef(initialWallet());
+  const [shopping,setShopping]=useState(false),[shopMessage,setShopMessage]=useState("");
+  const [broken,setBroken]=useState(false),[nearWall,setNearWall]=useState(false),[used,setUsed]=useState(false);
+  const [prize,setPrize]=useState<{medal:string;coins:number}|null>(null);
+  const config=useRef({mode:"training" as Mode,equipment:"feet" as Equipment,bonus:"none" as Bonus,tier:0,id:0,used:false,boost:0,gifted:false});
+  const position=useRef<WorldPoint>(spawn);
+  const [records,setRecords]=useState<Record<string,number>>({});
+
+  const wall=useMemo(()=>[(route[0][0]+route[1][0])/2,(route[0][1]+route[1][1])/2] as WorldPoint,[route]);
+  const world=useMemo(()=>broken?terrain.world:validateWorld({...terrain.world,props:[...terrain.world.props,{type:"crate",x:wall[0],y:wall[1],scale:1,footprint:{x:-12,y:-12,w:24,h:24}}]}),[terrain,wall,broken]);
+  function act(a:Action){const result=transact(walletRef.current,a);if(result.ok){walletRef.current=result.wallet;setWallet(result.wallet);}setShopMessage(result.message);return result.ok;}
+  function useBonus(){const c=config.current;if(paused||shopping||choosing||modesOpen||boardOpen||!race.current.running||race.current.countdown>0||c.used||c.bonus==="none")return;
+    if(c.bonus==="breaker"&&Math.hypot(position.current[0]-wall[0],position.current[1]-wall[1])>85){setShopMessage("Rapproche-toi de la barricade.");return;}
+    if(act({type:"use",bonus:c.bonus})){c.used=true;setUsed(true);if(c.bonus==="boost")c.boost=3000;else setBroken(true);}
+  }
+  const bonusHandler=useRef(useBonus);bonusHandler.current=useBonus;
+  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.code==="Space"&&!e.repeat&&!(e.target instanceof HTMLButtonElement)&&race.current.running){e.preventDefault();bonusHandler.current();}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);},[]);
+  const race=useRef<Race>(fresh());
+  const [hud,setHud]=useState(fresh),[run,setRun]=useState(0);
+  const comparison=(hud.running||hud.done)?config.current:{mode,equipment:mode==="training"?trainingEquipment:wallet.equipped,tier:mode==="training"?0:wallet.tier,bonus:mode==="free"&&wallet.bonus!=="none"&&wallet.stock[wallet.bonus]>0?wallet.bonus:"none"};
+  const targets=medalTargets(terrain.gen,circuitDistance(route),comparison.equipment);
+  const offroad=distanceToRoute(position.current,route)>terrain.width/2;
+  const best=records[`${selected}-${comparison.mode}-${comparison.equipment}-${comparison.tier}-${comparison.bonus}`]??null;
+  const [ready,setReady]=useState(false),[error,setError]=useState(""),[retry,setRetry]=useState(0);
+  const [reduced,setReduced]=useState(false);
+  useEffect(()=>{let active=true;setReady(false);setError("");race.current=fresh();setHud(fresh());setRecords({});walletRef.current=initialWallet();setWallet(walletRef.current);setShopping(false);setPrize(null);setBroken(false);
+    setProfile(null);setBoardOpen(false);setLaps([]);lapId.current=0;setCosmetic("none");setTrail("none");setPersonalBest(null);setMode("training");setModesOpen(false);setTrainingEquipment("feet");
+    Promise.all([client.read(),readFriendProfile(friendId)]).then(([snapshot,official])=>{
+      if(!active)return;if(snapshot.friendId!==friendId)throw new Error("Le Friend a changé.");
+      setProfile(official);setSelected(official.generation-1);walletRef.current=initialWallet(official.tier);setWallet(walletRef.current);setReady(true);
+    }).catch(()=>{if(active)setError("Impossible de lire la GEN et le tier officiels. Vérifie ta connexion puis réessaie.");});
+    return()=>{active=false;};},[client,friendId,retry]);
+  useEffect(()=>{const media=matchMedia("(prefers-reduced-motion: reduce)");const update=()=>setReduced(media.matches);update();media.addEventListener("change",update);return()=>media.removeEventListener("change",update);},[]);
+  const start=()=>{if(paused||!ready)return;if(mode==="free"&&!act({type:"start"})){setShopping(true);return;}
+    const w=walletRef.current;config.current={mode,equipment:mode==="training"?trainingEquipment:w.equipped,bonus:mode==="free"&&w.bonus!=="none"&&w.stock[w.bonus]>0?w.bonus:"none",tier:mode==="training"?0:w.tier,id:config.current.id+1,used:false,boost:0,gifted:false};
+    setModesOpen(false);setShopping(false);setChoosing(false);setBroken(false);setUsed(false);setPrize(null);setPersonalBest(null);setNearWall(false);setShopMessage("");race.current={...fresh(),running:true,countdown:3000};setHud({...race.current});setRun(n=>n+1);};
+  function step(point:WorldPoint,delta:number){
+    position.current=point;const r=race.current;if(!r.running||paused||shopping||choosing||modesOpen||boardOpen||delta===0)return;
+    if(r.countdown>0){r.countdown=Math.max(0,r.countdown-delta);setHud({...r});return;}
+    config.current.boost=Math.max(0,config.current.boost-delta);setNearWall(!broken&&Math.hypot(point[0]-wall[0],point[1]-wall[1])<=85);
+    r.elapsed+=delta;const target=route[r.next%route.length];
+    if(Math.hypot(point[0]-target[0],point[1]-target[1])<terrain.reach){
+      r.next++;
+      if(config.current.tier>=1&&!config.current.gifted&&r.next===Math.floor(route.length/2)){r.next++;config.current.gifted=true;}
+      if(r.next>route.length){r.elapsed=Math.round(r.elapsed);r.running=false;r.done=true;const c=config.current;const key=`${selected}-${c.mode}-${c.equipment}-${c.tier}-${c.bonus}`;const finishedId=++lapId.current;setLaps(old=>[...old,{id:finishedId,friendId:String(friendId),gen:terrain.gen,mode:c.mode,equipment:c.equipment,tier:c.tier,bonus:c.bonus,ms:r.elapsed,finishedAt:Date.now()}]);const previousBest=records[key];setPersonalBest(previousBest===undefined?"Premier record personnel !":r.elapsed<previousBest?`Nouveau record · −${time(previousBest-r.elapsed)}`:null);setRecords(old=>({...old,[key]:Math.min(old[key]??Infinity,r.elapsed)}));const reward=raceReward(r.elapsed,terrain.gen,circuitDistance(route),c.equipment);setPrize({...reward,coins:c.mode==="training"?0:reward.coins});if(c.mode==="free")act({type:"reward",run:c.id,coins:reward.coins});}
+    }
+    setHud({...r});
+  }
+  function draw(ctx:CanvasRenderingContext2D){
+    const r=race.current;ctx.save();ctx.lineJoin="round";ctx.beginPath();
+    [...route,route[0]].forEach((p,i)=>{const [x,y]=project(...p);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
+    ctx.strokeStyle="#000000";ctx.lineWidth=terrain.width+6;ctx.stroke();ctx.strokeStyle="#ffffff";ctx.lineWidth=terrain.width;ctx.stroke();
+    ctx.setLineDash([7,10]);ctx.lineWidth=2;ctx.strokeStyle="#000000";ctx.stroke();ctx.setLineDash([]);
+    const [fx,fy]=project(...spawn);
+    for(let row=0;row<2;row++)for(let col=0;col<6;col++){ctx.fillStyle=(row+col)%2?"#fff":"#000000";ctx.fillRect(fx-24+col*8,fy-8+row*8,8,8);}
+    ctx.font="bold 13px monospace";ctx.textAlign="center";ctx.fillStyle="#000000";ctx.fillText("DÉPART / ARRIVÉE",fx,fy+30);
+    route.forEach((p,i)=>{if(i===0)return;const [x,y]=project(...p);const collected=r.next>i,active=r.next===i;
+      ctx.beginPath();ctx.ellipse(x,y,active?22:16,active?10:7,0,0,Math.PI*2);ctx.fillStyle=collected?"#ffffff":active?"#ffffff":"#ffffff";ctx.fill();ctx.strokeStyle="#000000";ctx.lineWidth=2;ctx.stroke();
+      ctx.font=active?"bold 29px monospace":"23px monospace";ctx.fillStyle=collected?"#000000":"#000000";ctx.fillText(collected?"✓":"★",x,y-10);
+      ctx.font="bold 11px monospace";ctx.fillText(String(i),x,y+4);
+    });
+    if(r.next===route.length){ctx.fillStyle="#ffffff";ctx.beginPath();ctx.arc(fx,fy-24,15,0,Math.PI*2);ctx.fill();ctx.fillStyle="#000000";ctx.font="bold 24px monospace";ctx.fillText("★",fx,fy-17);}
+    if(r.running){
+      const target=route[r.next%route.length], [tx,ty]=project(...target), [px,py]=project(...position.current);
+      ctx.setLineDash([3,8]);ctx.strokeStyle="#000";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(tx,ty);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle="#000";ctx.beginPath();ctx.moveTo(tx,ty-45);ctx.lineTo(tx-8,ty-58);ctx.lineTo(tx+8,ty-58);ctx.closePath();ctx.fill();
+    }
+    ctx.restore();
+  }
+  if(!ready)return <div className="loading" role={error?"alert":"status"}>{error||"Préparation de ton île…"}{error&&<button onClick={()=>setRetry(n=>n+1)}>Réessayer</button>}</div>;
+  const stars=Math.min(route.length,hud.next-1);
+  return <section className="sparking" aria-label="Sparking Stars" inert={paused||undefined}>
+    <GameWorld trail={trail} cosmetic={cosmetic} key={`${friendId}-${selected}-${run}`} friendId={friendId} world={world} spawn={spawn} interactions={noInteractions} onInteract={()=>{}} focusRevision={used?1:0} paused={paused||shopping||choosing||modesOpen||boardOpen||!hud.running} equipment={comparison.equipment} movementScale={point=>race.current.countdown>0?0:(distanceToRoute(point,route)>terrain.width/2 ? Math.max(.38,.8-selected*.08):1)*(config.current.equipment==="kart"?1.45:config.current.equipment==="rollers"?1.2:1)*(config.current.boost>0?1.6:1)} reducedMotion={reduced} onStep={step} drawTrack={draw}/>
+    <header className="hud"><div><small>GEN {terrain.gen} · TIER {profile?.tier} · {terrain.name.toUpperCase()}</small><h1>Sparking Stars <span>✦</span></h1></div><div className="score"><b data-testid="stars">★ {stars}/{route.length}</b><strong data-testid="timer">{time(hud.elapsed)}</strong><small>Record {comparison.mode==="training"?"entraînement":"libre"} {best===null?"—":time(best)}</small></div></header>
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&!hud.running&&<div className={`race-card ${hud.done?"finished":""}`} role="status"><small>{hud.done?"TOUR TERMINÉ !":mode==="training"?"ENTRAÎNEMENT · ILLIMITÉ":"COURSE LIBRE"}</small><h2>{hud.done?"Bien joué, petite étoile ✦":"À tes marques !"}</h2><p>{hud.done?`${route.length} étoiles · ${time(hud.elapsed)}`:terrain.subtitle}</p>{prize&&<>{personalBest&&<div className="record-ribbon">{personalBest}</div>}<div className="medal-emblem" aria-hidden="true">{prize.medal==="Or"?"✦":prize.medal==="Argent"?"◇":"○"}</div><p className="prize" data-testid="prize">{prize.medal} · {comparison.mode==="training"?"Entraînement sans récompense":`+${prize.coins} pièces de test`}</p><p className="finish-tip">{prize.medal==="Or"?"Objectif Or atteint ! À toi de battre ton record.":`Encore ${time(Math.max(0,hud.elapsed-(prize.medal==="Argent"?targets.gold:targets.silver)*1000))} à gagner pour ${prize.medal==="Argent"?"l’Or":"l’Argent"}.`}</p></>}<small>{labels[comparison.equipment]} · {comparison.tier>=1?"1 étoile offerte":"Toutes les étoiles"}</small><div className="medal-targets"><span>✦ Or ≤ {time(targets.gold*1000)}</span><span>◇ Argent ≤ {time(targets.silver*1000)}</span></div><button disabled={paused} onClick={start}>{hud.done?"Rejouer":"C’est parti !"}</button></div>}
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&hud.running&&<div className="race-status"><span aria-live="polite">{hud.next===route.length?"Dernière étoile : retourne à l’arrivée !":`Direction l’étoile ${hud.next} →`}</span><button disabled={paused} onClick={start}>Recommencer</button></div>}
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&hud.running&&<><div className="race-progress" aria-label="Progression du circuit"><div style={{width:`${100*stars/route.length}%`}}/></div><div className="pace-label">{hud.countdown>0?"Prépare-toi…":offroad?"HORS-PISTE · tu ralentis":hud.elapsed<=targets.gold*1000?`Objectif Or · ${time(Math.max(0,targets.gold*1000-hud.elapsed))}`:hud.elapsed<=targets.silver*1000?`Objectif Argent · ${time(Math.max(0,targets.silver*1000-hud.elapsed))}`:"Finis le tour pour décrocher le Bronze"}</div></>}
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&hud.running&&hud.countdown>0&&<div className="countdown" role="status" aria-live="polite"><small>À TES MARQUES</small><strong>{Math.ceil(hud.countdown/1000)}</strong><span>{labels[config.current.equipment]} · GEN {terrain.gen}</span></div>}
+    <button className="board-switch" disabled={paused||hud.running} onClick={()=>{setShopping(false);setChoosing(false);setModesOpen(false);setBoardOpen(true);}}>Chronos</button>
+    {boardOpen&&<Leaderboard laps={laps} gen={terrain.gen} equipment={comparison.equipment} mode={comparison.mode} tier={comparison.tier} bonus={comparison.bonus as Bonus} onClose={()=>setBoardOpen(false)}/>}
+    <button className="mode-switch" disabled={paused||hud.running} onClick={()=>{setBoardOpen(false);setShopping(false);setChoosing(false);setModesOpen(true);}}>Modes</button>
+    {modesOpen&&<div className="mode-panel" role="dialog" aria-label="Modes de course"><div className="picker-heading"><div><small>LE PADDOCK</small><h2>Choisis ta course</h2></div><button onClick={()=>setModesOpen(false)}>Fermer</button></div>
+      <div className="mode-grid">
+        <button aria-pressed={mode==="training"} onClick={()=>{setMode("training");race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}><strong>Entraînement</strong><span>Départs illimités · aucune énergie dépensée</span><span>Toutes les étoiles, sans consommable ni gain de pièces. Record personnel par équipement.</span></button>
+        <button aria-pressed={mode==="free"} onClick={()=>{setMode("free");race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}><strong>Course libre</strong><span>Pièces de test selon ton chrono</span><span>Avantages du tier et bonus équipés. Rollers et kart : 3 départs par session chacun.</span></button>
+        <div className="upcoming"><strong>Compétition · à venir</strong><p>Classements par GEN et équipement, capacités égales, défis quotidiens. Aucun classement en ligne pour le moment.</p></div>
+      </div>
+      {mode==="training"&&<><h3>Ton équipement d’entraînement</h3><div className="loadout">{(["feet","rollers","kart"] as Equipment[]).map(e=><button key={e} disabled={!wallet.owned.includes(e)} aria-pressed={trainingEquipment===e} onClick={()=>{setTrainingEquipment(e);race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}>{labels[e]}{wallet.owned.includes(e)?" · illimité":" · à acheter"}</button>)}</div><p>Les équipements de ton garage restent utilisables ici, même sans énergie.</p></>}
+      <p className="shop-note">Records conservés pendant cette session seulement. Le fantôme personnel arrive dans une prochaine étape.</p><button onClick={()=>setModesOpen(false)}>Retour à la piste</button>
+    </div>}
+    <button className="shop-switch" disabled={paused||hud.running} onClick={()=>{setBoardOpen(false);setModesOpen(false);setChoosing(false);setShopMessage("");setShopping(true);}}>Boutique · {wallet.coins} ◇</button>
+    {shopping&&<Shop friendId={friendId} trail={trail} onTrail={id=>{if(!paused)setTrail(id);}} cosmetic={cosmetic} onCosmetic={id=>{if(!paused)setCosmetic(id);}} wallet={wallet} message={shopMessage} act={a=>{if(!paused)act(a);}} onClose={()=>setShopping(false)}/>}
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&hud.running&&<div className="bonus-bar"><span>{labels[config.current.equipment]}{config.current.boost>0?" · BOOST !":""}</span><button disabled={paused||hud.countdown>0||used||config.current.bonus==="none"||(config.current.bonus==="breaker"&&!nearWall)} onClick={useBonus}>{used?"Bonus utilisé":config.current.bonus==="none"?"Aucun bonus":`${labels[config.current.bonus]} · Espace`}</button></div>}
+    <button className="terrain-switch" disabled={paused} onClick={()=>{race.current=fresh();setHud(fresh());setBoardOpen(false);setModesOpen(false);setShopping(false);setChoosing(true);}}>Les 6 terrains</button>
+    {choosing&&<div className="terrain-picker" role="dialog" aria-label="Choisir un terrain"><div className="picker-heading"><div><small>SPARKING STARS · EXPLORATION</small><h2>Six îles. Six défis.</h2></div><button onClick={()=>setChoosing(false)}>Fermer</button></div><p>Ton terrain correspond à la GEN officielle de ton Friend. Les autres îles restent visibles en aperçu.</p><div className="terrain-grid">{terrains.map((t,i)=><button key={t.gen} disabled={t.gen!==profile?.generation} aria-pressed={selected===i} onClick={()=>{if(paused||t.gen!==profile?.generation)return;setSelected(i);race.current=fresh();setHud(fresh());setRun(n=>n+1);setChoosing(false);}}><small>GEN {t.gen} · {t.difficulty}</small><svg viewBox="0 0 576 384" aria-hidden="true"><polygon points={t.shape.map(p=>p.join(",")).join(" ")} fill="white" stroke="black" strokeWidth="8"/><polyline points={[...t.route,t.route[0]].map(p=>p.join(",")).join(" ")} fill="none" stroke="black" strokeWidth="10"/>{t.holes.map((h,j)=><rect key={j} x={h[0]} y={h[1]} width={h[2]} height={h[3]} fill="black"/>)}</svg><strong>{t.name}</strong><span>{t.route.length} étoiles · {t.gen!==profile?.generation?`Friend GEN ${t.gen} requis`:Object.keys(records).some(k=>k.startsWith(`${i}-`))?"Record enregistré":"À découvrir"}</span></button>)}</div></div>}
+    <footer className="hint">Flèches / ZQSD / WASD · Clique ou touche le sol pour marcher<small>Hors-piste = ralenti · {mode==="training"?"Entraînement sans récompense":"Course libre · pièces de test"} · Session non sauvegardée</small></footer>
+  </section>;
+}

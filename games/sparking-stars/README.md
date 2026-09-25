@@ -1,0 +1,106 @@
+# Sparking Stars — six îles et boutique
+
+FriendSDK 0.1.2, prototype noir et blanc dans le runtime officiel.
+Lancer depuis la racine : `npm run dev:game -- games/sparking-stars --port 4174`.
+Wallet Robinhood (4663) et Friend hardwired requis. Aucune transaction nécessaire.
+
+## Courses
+Six îles originales dans la grille 576 × 384 : Jardin, Carrière, Canaux, Ruines,
+Fabrique, Citadelle. Ce ne sont pas des tailles officielles de GEN. Terrain attribué automatiquement par la GEN officielle ; autres terrains visibles mais verrouillés.
+Flèches, ZQSD, WASD, clic ou toucher. Collecter les étoiles numérotées dans l’ordre
+et revenir au départ. Hors-piste ralenti. Plus haut = passages plus techniques.
+Une barricade contournable est placée à mi-chemin entre le départ et l’étoile 1.
+Le casse-brique peut la supprimer sans déplacer le personnage.
+
+## Boutique de simulation
+300 pièces de test au début. Monnaie locale sans valeur RF, sans conversion,
+sans financement ni engagement de paiement. Pas d’API monnaie ajoutée au SDK :
+le modèle local sera à remplacer pour une économie persistante et financée.
+Chaque arrivée crédite une seule fois : 30 + 5 × GEN + bonus médaille
+(Or 35, Argent 20, Bronze 10). Or <= (distance du circuit / 170 × 1.65 + 0.25 × GEN)/vitesse
+secondes ; Argent <= 1.3 × ce seuil. Seuils provisoires à équilibrer en jouant.
+Les records sont séparés par terrain, équipement, tier et bonus sélectionné.
+Rechargement ou changement d’identité réinitialise toutes les données de test.
+Aucune sauvegarde serveur, aucun classement en ligne ni quota quotidien réel.
+
+Tiers officiels 0–4 lus sur le personnage ; aucun tier vendu dans la boutique :
+0. Aucun avantage ; prix normaux.
+1. Une étoile intermédiaire offerte.
+2. Rollers achetables : 180 de base, +20 % de vitesse.
+3. −20 % sur les articles. Aucune autre remise de tier.
+4. Kart achetable : 450 de base, +45 % de vitesse.
+Source : https://rarefriends.com/docs/generations et ABI du manifeste public
+https://rarefriends.com/api/protocol/config. Lecture à un même bloc récent de
+Generations.generation, Generations.activationManager puis ActivationManager.positions.
+Échec réseau ou valeurs hors limites : pas de terrain ou de tier inventé, bouton Réessayer.
+Le runtime SDK garde le contrôle du wallet et de l’éligibilité. Aucun signer ajouté.
+Recharger après une promotion/upgrade pour relire les valeurs. Une promotion peut
+réinitialiser le tier officiel. Cette intégration lit seulement l’état du NFT.
+Prix arrondis à l’entier supérieur. Équipement permanent pendant cette session.
+Rollers et kart : chacun 3 départs par session ; recommencer dépense une énergie.
+À pied : illimité. Aucun rachat d’énergie. Boutique accessible entre les courses.
+
+Bonus équipables : boost (25 de base, +60 % 3 secondes), casse-brique (30 de base,
+retire la barricade à moins de 85 unités). Achat ajoute un exemplaire au stock.
+Un seul bonus équipé, un seul usage par course ; activation par Espace ou bouton.
+Débit seulement lors d’une activation réussie. Pas de son ; préférence de réduction
+ des animations respectée. Pause quand menus runtime ouverts ou onglet masqué.
+
+## Sources et validation
+Décors et sprites : SDK selon NOTICE.md. Renderer local adapté de GameWorld,
+Apache-2.0 ; imports publics seulement. Tracés/obstacles dans terrains.json.
+Le game.json conserve le schéma de packs obligatoire du runtime mais aucun achat,
+play ou redeem SDK n’est appelé dans ce jeu. Il ne décrit pas l’économie locale.
+Aucun contrat déployé, aucune clé ou transaction signée.
+
+Commandes de contrôle depuis la racine :
+- `npx friendsdk check games/sparking-stars`
+- `node games/sparking-stars/test-economy.mjs`
+- `node games/sparking-stars/test-profile.mjs`
+Tests de profil : six GEN, cinq tiers officiels, verrouillage des autres terrains
+et échec RPC bloquant. Fixtures réservées aux tests automatisés ; aucun faux
+profil publié. Les anciens tests de sélection libre/achat de tiers sont historiques
+et ne correspondent plus aux règles actuelles.
+
+## Départ et objectifs
+Décompte de trois secondes après chargement du personnage : déplacement, chrono
+et bonus bloqués jusqu’au départ. La pause du runtime suspend aussi le décompte.
+Le chrono mesure le temps actif réel ; le déplacement reste découpé en pas sûrs
+pour conserver les collisions et les bonus à faible fréquence d’images.
+Une flèche et un trait pointillé guident vers l’étoile suivante. Barre de progression,
+signal hors-piste et objectifs Or/Argent visibles. Arrivée avec médaille et écart
+vers l’objectif suivant. Effets sans clignotement ni son, tout en noir et blanc.
+
+Calibration provisoire : Canaux GEN 3 à pied, Or 16.9 s, Argent 22.0 s,
+à partir du tour joueur de 15.8 s sans boost. Autres GEN à affiner en jouant.
+
+## Modes
+Entraînement sélectionné au lancement : départs illimités avec équipements déjà
+achetés, sans énergie consommée, récompense, consommable ou étoile offerte.
+Sélection d’équipement indépendante de la course libre, même avec zéro énergie.
+Records séparés par mode et équipement, conservés seulement durant la session.
+Course libre : règles précédentes avec gains de test, avantages de tier et énergie.
+Compétition présentée comme à venir : pas de classement ni de quota quotidien actif.
+Fantôme et temps intermédiaires restent à implémenter.
+
+## Vestiaire
+Dans la boutique : au naturel, casque damier, casquette du paddock, antenne étoile.
+Première collection offerte, sans achat ni avantage de performance. Superposition
+vectorielle monochrome au sprite canonique conservé. État par session, réinitialisé
+au changement de Friend ou rechargement. Pas de pass payant ni de NFT accessoire.
+
+## Présentation du pilote
+Le vestiaire affiche le véritable sprite du Friend sélectionné avec son accessoire.
+Sillages offerts : étoiles ou damier, 10 marques maximum, durée 650 ms, uniquement
+en mouvement. Désactivés avec réduction des animations ; pause du runtime respectée.
+Arrivée avec damier et annonce du premier/nouveau record de la catégorie courante.
+Purement visuel, sans effet sur vitesse, prix, collisions ou récompenses.
+
+## Tableau des chronos
+Bouton Chronos : meilleurs tours par Friend, historique des dix derniers tours,
+référence top 1 et écarts. Filtrage GEN, équipement, mode et périodes calendaires
+UTC (semaine commence lundi). Course libre filtrée également par tier et bonus
+équipé. Temps arrondis une fois à la milliseconde à l’arrivée ; égalités de rang
+1, 1, 3. Session locale uniquement, remise à zéro à chaque identité/rechargement.
+Aucun faux pilote ou score injecté. Pas de serveur, de synchronisation multi-joueur,
+de vérification anti-triche ou de récompense classée ; site public encore à faire.

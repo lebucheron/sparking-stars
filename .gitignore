@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tgz
+contracts/out/
+contracts/cache/
+contracts/deployments/
+
+.friendsdk/
+
+site/
+artifacts/
