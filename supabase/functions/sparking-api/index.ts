@@ -36,6 +36,10 @@ Deno.serve(async(req)=>{
   for(;;){const {value,done}=await reader.read();if(done)break;bytes+=value.length;if(bytes>2500000){await reader.cancel();fail('Course trop volumineuse.');}chunks.push(value);}
   const buffer=new Uint8Array(bytes);let offset=0;for(const c of chunks){buffer.set(c,offset);offset+=c.length;}
   const b=JSON.parse(new TextDecoder().decode(buffer));check(b&&typeof b==='object'&&!Array.isArray(b));
+  if(b.action==='creator'){
+   const rows=await result(db.from('sparking_scores').select('elapsed_ms,finished_at').eq('friend_id','331213').eq('generation',3).eq('equipment','feet').eq('rules_version',RULES).is('withdrawn_at',null).gte('finished_at','2026-09-26T09:29:00Z').order('elapsed_ms').limit(1));
+   return send({friendId:'331213',gen:3,equipment:'feet',rules:RULES,ms:rows[0]?.elapsed_ms??null});
+  }
   if(b.action==='board'){
    check(Number.isInteger(b.gen)&&b.gen>=1&&b.gen<=6&&['feet','rollers','kart'].includes(b.equipment)&&['day','week','month'].includes(b.period));
    return send({rules:RULES,rows:await result(db.rpc('sparking_board',{p_gen:b.gen,p_gear:b.equipment,p_rules:RULES,p_period:b.period}))});

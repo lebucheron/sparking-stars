@@ -17,3 +17,7 @@ isolation des catégories, arrêts directs sur les six GEN, destruction sans req
 réseau ni écran de chargement. Aucun changement des vitesses ou des collisions.
 
 Présentation adaptative : cadre paddock monochrome sur ordinateur, mode cinéma fonctionnel et interface compacte sur téléphone. Vérifiée visuellement à 1440, 1366 et 390 px, avec contrôles et plein écran.
+
+Défi du créateur : cible réelle filtrée côté serveur depuis les nouvelles commandes, GEN 3 à pied uniquement, comparaison après acceptation. Outil de capture locale volontaire de 45 secondes sur ordinateur, avec téléchargement et arrêt des pistes, sans audio ni téléversement. Tests d’interface du défi, accès par GEN et contrôles d’enregistrement.
+
+Les circuits sont inversés intégralement : GEN 1 Citadelle, 2 Fabrique, 3 Ruines, 4 Canaux, 5 Carrière, 6 Jardin. Chaque circuit conserve obstacles, tracé, ralentissement hors-piste et objectifs. La génération du NFT sélectionne toujours son terrain. Nouvelle version des règles : anciens chronos conservés hors du nouveau classement, collection inchangée. Le défi du créateur attend une nouvelle référence GEN 3 valide.

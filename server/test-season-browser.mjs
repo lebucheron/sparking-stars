@@ -1,3 +1,4 @@
+import {RULES} from '../supabase/functions/sparking-api/validation.js';
 
 import assert from 'node:assert/strict';
 import {testGame} from '../games/sparking-stars/test-profile-helper.mjs';
@@ -7,7 +8,8 @@ for(const width of [1000,390]){
  beforeOpen:async({page})=>{
   await page.route('https://hkudnvqseodizcplkgvw.supabase.co/functions/v1/sparking-api',async route=>{
    const b=route.request().postDataJSON();let data;
-   if(b.action==='challenge')data={id:'11111111-1111-4111-8111-111111111111',message:`lebucheron.github.io wants you to sign in with your Ethereum account:\n${b.wallet}\n\nTest login.\nURI: https://lebucheron.github.io/sparking-stars/\nChain ID: 4663`};
+   if(b.action==='creator')data={friendId:'331213',gen:3,equipment:'feet',rules:RULES,ms:16184};
+   else if(b.action==='challenge')data={id:'11111111-1111-4111-8111-111111111111',message:`lebucheron.github.io wants you to sign in with your Ethereum account:\n${b.wallet}\n\nTest login.\nURI: https://lebucheron.github.io/sparking-stars/\nChain ID: 4663`};
    else if(b.action==='login')data={token:'1'.repeat(64),expiresAt:Date.now()+60000};
    else if(b.action==='style'){
     assert.equal(b.friendId,'7730');assert.match(route.request().headers().authorization,/^Bearer 1{64}$/);

@@ -152,3 +152,20 @@ explicite du joueur). Sur téléphone, le cadre décoratif disparaît et le jeu 
 un format portrait avec les commandes tactiles. Aucun changement des règles.
 Tests : `node server/test-presentation.mjs` (1440×1000, 1366×768 et 390×844 ;
 bounds, menus, clavier et entrée/sortie du plein écran). Captures dans artifacts/.
+
+## Le défi du créateur et la démo
+Le défi vise le meilleur tour accepté du Friend #331213, GEN 3 à pied, depuis
+le 26 septembre 2026 09:29 UTC (déploiement des commandes directes). Le serveur
+écarte les scores retirés et les autres versions de règles. La cible est figée
+au moment où le joueur choisit le défi. Seuls les Friends GEN 3 peuvent le relever,
+en compétition sans bonus ; le résultat attend l’acceptation du serveur. Aucun lot.
+
+Sur ordinateur, Filmer la démo propose la sélection native d’un onglet/fenêtre
+via getDisplayMedia. Capture locale sans audio, arrêt à 45 secondes ou à la demande,
+tracks arrêtées et lien de téléchargement MP4/WebM suivant le navigateur. Aucun
+envoi automatique et aucune captation sans sélection explicite. La vidéo finale
+nécessite que le joueur choisisse l’onglet et joue ; les captures de tests ne sont
+pas présentées comme ses courses. Scénario conseillé : défi, course avec fantôme,
+classement, collection et retour à l’île.
+
+Les circuits sont inversés intégralement : GEN 1 Citadelle, 2 Fabrique, 3 Ruines, 4 Canaux, 5 Carrière, 6 Jardin. Chaque circuit conserve obstacles, tracé, ralentissement hors-piste et objectifs. La génération du NFT sélectionne toujours son terrain. Nouvelle version des règles : anciens chronos conservés hors du nouveau classement, collection inchangée. Le défi du créateur attend une nouvelle référence GEN 3 valide.

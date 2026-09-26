@@ -13,7 +13,8 @@ for(const width of [1000,390]){
  beforeOpen:async({page})=>{
   await page.route('https://hkudnvqseodizcplkgvw.supabase.co/functions/v1/sparking-api',async route=>{
    const b=route.request().postDataJSON();let data;
-   if(b.action==='style')data={balance:0,cosmetic:'none',trail:'none',owned:[],laps:0,daily:0,active:true,endsAt:'2026-10-24T00:00:00Z'};
+   if(b.action==='creator')data={friendId:'331213',gen:3,equipment:'feet',rules:RULES,ms:16184};
+   else if(b.action==='style')data={balance:0,cosmetic:'none',trail:'none',owned:[],laps:0,daily:0,active:true,endsAt:'2026-10-24T00:00:00Z'};
    else if(b.action==='challenge')data={id:'11111111-1111-4111-8111-111111111111',message:`lebucheron.github.io wants you to sign in with your Ethereum account:\n${b.wallet}\n\nTest login.\nURI: https://lebucheron.github.io/sparking-stars/\nChain ID: 4663`};
    else if(b.action==='login')data={token:'1'.repeat(64),expiresAt:Date.now()+60000};
    else if(b.action==='start'){assert.match(route.request().headers().authorization,/^Bearer 1{64}$/);data={id:'22222222-2222-4222-8222-222222222222',generation:3,rules:RULES};}

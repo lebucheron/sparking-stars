@@ -16,7 +16,7 @@ export function validateTrace(gen:number,equipment:string,trace:unknown):number{
   if(i===0){if(time!==0||Math.hypot(x-previous[0],y-previous[1])>.001)return reject();continue;}
   const delta=time-last;if(delta<=0||time>600000||!isWorldWalkable(world,point,7)||!nav.segmentClear(previous,point))return reject();
   const [ax,ay]=project(...previous),[bx,by]=project(x,y);
-  const road=distanceToRoute(previous,t.route)>t.width/2?Math.max(.38,.8-(gen-1)*.08):1;
+  const road=distanceToRoute(previous,t.route)>t.width/2?Math.max(.38,.8-(t.level-1)*.08):1;
   if(Math.hypot(bx-ax,by-ay)>170*.001*Math.min(100,delta)*pace*road*1.005+.002)return reject();
   const target=t.route[next%t.route.length];
   if(Math.hypot(x-target[0],y-target[1])<t.reach)next++;
