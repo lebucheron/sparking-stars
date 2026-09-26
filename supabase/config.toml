@@ -1,0 +1,4 @@
+project_id = "sparking-stars-beta"
+
+[functions.sparking-api]
+verify_jwt = false # Wallet signature and hashed server sessions are verified inside the function.

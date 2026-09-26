@@ -51,7 +51,7 @@ Décors et sprites : SDK selon NOTICE.md. Renderer local adapté de GameWorld,
 Apache-2.0 ; imports publics seulement. Tracés/obstacles dans terrains.json.
 Le game.json conserve le schéma de packs obligatoire du runtime mais aucun achat,
 play ou redeem SDK n’est appelé dans ce jeu. Il ne décrit pas l’économie locale.
-Aucun contrat déployé, aucune clé ou transaction signée.
+Aucun contrat déployé ni transaction signée. Une signature de connexion gratuite est requise pour le classement public.
 
 Commandes de contrôle depuis la racine :
 - `npx friendsdk check games/sparking-stars`
@@ -80,7 +80,7 @@ achetés, sans énergie consommée, récompense, consommable ou étoile offerte.
 Sélection d’équipement indépendante de la course libre, même avec zéro énergie.
 Records séparés par mode et équipement, conservés seulement durant la session.
 Course libre : règles précédentes avec gains de test, avantages de tier et énergie.
-Compétition présentée comme à venir : pas de classement ni de quota quotidien actif.
+Compétition bêta : classement public, toutes les étoiles sans consommable ni avantage de tier. Catégories à pied, rollers (tier 2+) et kart (tier 4). Aucun quota quotidien ni gain RF.
 Fantôme et temps intermédiaires restent à implémenter.
 
 ## Vestiaire
@@ -102,5 +102,4 @@ référence top 1 et écarts. Filtrage GEN, équipement, mode et périodes calen
 UTC (semaine commence lundi). Course libre filtrée également par tier et bonus
 équipé. Temps arrondis une fois à la milliseconde à l’arrivée ; égalités de rang
 1, 1, 3. Session locale uniquement, remise à zéro à chaque identité/rechargement.
-Aucun faux pilote ou score injecté. Pas de serveur, de synchronisation multi-joueur,
-de vérification anti-triche ou de récompense classée ; site public encore à faire.
+Aucun faux pilote ou score injecté. « Voir le classement public » ouvre le top 100 Supabase, séparé des chronos locaux. Voir [le serveur](../../supabase/README.md) pour les contrôles et leurs limites. Le build public utilise `node scripts/build-sparking-public.mjs`.

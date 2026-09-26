@@ -1,0 +1,15 @@
+
+import {useEffect,useState} from 'react';
+import {publicApi} from './public-api';
+import {labels,type Equipment} from './shop-model';
+import {preciseTime} from './leaderboard-model';
+type Row={friend_id:string;elapsed_ms:number;rank:number;gap:number};
+export function PublicBoard({gen,equipment,onClose}:{gen:number;equipment:Equipment;onClose:()=>void}){
+ const [generation,setGeneration]=useState(gen),[gear,setGear]=useState(equipment),[period,setPeriod]=useState('week'),[rows,setRows]=useState<Row[]>([]),[status,setStatus]=useState('Chargement…'),[retry,setRetry]=useState(0);
+ useEffect(()=>{let active=true;setRows([]);setStatus('Chargement…');publicApi('board',{gen:generation,equipment:gear,period}).then(data=>{if(active){setRows(data.rows);setStatus('');}}).catch(e=>{if(active)setStatus(e.message);});return()=>{active=false;};},[generation,gear,period,retry]);
+ return <div className="leaderboard-panel" role="dialog" aria-label="Classement public"><header className="picker-heading"><div><small>SPARKING STARS · BÊTA PUBLIQUE</small><h2>La chasse au top 1</h2></div><button onClick={onClose}>Retour</button></header>
+ <p>Courses contrôlées par le serveur · toutes les étoiles · sans bonus. Aucun gain de RF ni lot promis pendant la bêta.</p>
+ <div className="board-filters"><label>Terrain<select value={generation} onChange={e=>setGeneration(Number(e.target.value))}>{[1,2,3,4,5,6].map(g=><option key={g} value={g}>GEN {g}</option>)}</select></label><label>Catégorie<select value={gear} onChange={e=>setGear(e.target.value as Equipment)}>{(['feet','rollers','kart'] as Equipment[]).map(g=><option key={g} value={g}>{labels[g]}</option>)}</select></label><label>Période (UTC)<select value={period} onChange={e=>setPeriod(e.target.value)}><option value="day">Aujourd’hui</option><option value="week">Cette semaine</option><option value="month">Ce mois</option></select></label><button onClick={()=>setRetry(n=>n+1)}>Actualiser</button></div>
+ {status?<p role="status">{status}</p>:<><div className="leader-banner"><span>✦ TEMPS À BATTRE</span><strong>{rows[0]?preciseTime(rows[0].elapsed_ms):'La piste attend son premier pilote'}</strong><small>{rows[0]?`Friend #${rows[0].friend_id}`:'Termine une course en mode Compétition.'}</small></div><p>Meilleur chrono par Friend · top 100 · égalités conservées au millième.</p><div className="board-table-wrap"><table><thead><tr><th>Rang</th><th>Pilote</th><th>Temps</th><th>Écart</th></tr></thead><tbody>{rows.map(r=><tr key={r.friend_id}><td>#{r.rank}</td><td>Friend #{r.friend_id}</td><td>{preciseTime(r.elapsed_ms)}</td><td>{r.gap?'+'+preciseTime(r.gap):'Référence'}</td></tr>)}</tbody></table></div></>}
+ <p className="board-rules">Validation bêta de la trajectoire : les contrôles ne prouvent pas qu’une course est jouée par un humain. Les classements repartent à zéro lorsque les règles du circuit changent.</p></div>;
+}
