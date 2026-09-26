@@ -61,6 +61,13 @@ Deno.serve(async(req)=>{
   const token=req.headers.get('authorization')?.replace(/^Bearer /,'');check(token&&/^[0-9a-f]{64}$/.test(token),'Active le classement avec ton wallet.');
   const hash=await sha(token),session=await result(db.from('sparking_sessions').select('wallet,expires_at').eq('token_hash',hash).single());
   check(Date.parse(session.expires_at)>Date.now(),'Session expirée : reconnecte le classement.');
+  if(b.action==='style'){
+   check(['read','buy','equip'].includes(b.operation));
+   check(b.item===undefined||typeof b.item==='string'&&b.item.length<30);
+   check(b.kind===undefined||['cosmetic','trail'].includes(b.kind));
+   await profile(b.friendId,session.wallet);
+   return send(await result(db.rpc('sparking_style',{p_friend:b.friendId,p_action:b.operation,p_item:b.item??null,p_kind:b.kind??null})));
+  }
   if(b.action==='start'){
    check(b.rules===RULES,'Le circuit a changé : recharge le jeu.');
    check(['feet','rollers','kart'].includes(b.equipment));const p=await profile(b.friendId,session.wallet);

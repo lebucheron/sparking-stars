@@ -8,5 +8,5 @@ select c.relname as table_name,
  has_table_privilege('service_role',c.oid,'INSERT') as server_insert
 from pg_class c join pg_namespace n on n.oid=c.relnamespace
 where n.nspname='public' and c.relname in
- ('sparking_challenges','sparking_sessions','sparking_runs','sparking_scores')
+ ('sparking_challenges','sparking_sessions','sparking_runs','sparking_scores','sparking_style_accounts','sparking_style_items','sparking_style_rewards')
 order by c.relname;

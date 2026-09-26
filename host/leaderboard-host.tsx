@@ -34,7 +34,7 @@ function App(){
    if(!frame||e.source!==frame.contentWindow||e.data?.type!=='sparking-public-v1'||e.ports.length!==1)return;
    const port=e.ports[0],r=revision,{action,payload}=e.data;
    try{
-    if(!payload||typeof payload!=='object'||!['prepare','board','start','finish'].includes(action))throw new Error('Action refusée.');
+    if(!payload||typeof payload!=='object'||!['prepare','board','start','finish','style'].includes(action))throw new Error('Action refusée.');
     if(action==='prepare'){
      if(typeof payload.friendId!=='string'||!/^[1-9][0-9]{0,77}$/.test(payload.friendId))throw new Error('Friend incorrect.');
      if(friendId!==payload.friendId){clear();friendId=payload.friendId;setNotice('Classement bêta · signature gratuite pour publier tes courses.');}port.postMessage({ready:true});return;
@@ -42,11 +42,11 @@ function App(){
     if(action==='board'){const data=await request({action,gen:payload.gen,equipment:payload.equipment,period:payload.period});port.postMessage(data);return;}
     if(action==='start'&&typeof payload.friendId==='string'&&/^[1-9][0-9]{0,77}$/.test(payload.friendId))friendId=payload.friendId;
     if(!token||expiry<Date.now())throw new Error('Clique « Activer le classement » au-dessus du jeu, puis relance la course.');
-    if(busy)throw new Error('Une demande est déjà en cours.');busy=true;
+    const exclusive=!(action==='style'&&payload.operation==='read');if(exclusive&&busy)throw new Error('Une demande est déjà en cours.');if(exclusive)busy=true;
     try{
-     await account();const body=action==='start'?{action,friendId:payload.friendId,equipment:payload.equipment,rules:payload.rules}:{action,id:payload.id,trace:payload.trace};
+     await account();const body=action==='style'?{action,friendId:payload.friendId,operation:payload.operation,item:payload.item,kind:payload.kind}:action==='start'?{action,friendId:payload.friendId,equipment:payload.equipment,rules:payload.rules}:{action,id:payload.id,trace:payload.trace};
      const data=await request(body,true);if(r!==revision||frame!==document.querySelector('iframe'))throw new Error('Le pilote a changé.');port.postMessage(data);
-    }finally{busy=false;}
+    }finally{if(exclusive)busy=false;}
    }catch(err){port.postMessage({error:err instanceof Error?err.message:'Classement indisponible.'});}finally{port.close();}
   };
   window.addEventListener('message',listener);return()=>{window.removeEventListener('message',listener);document.removeEventListener('load',loaded,true);provider?.removeListener?.('accountsChanged',reset);provider?.removeListener?.('chainChanged',reset);provider?.removeListener?.('disconnect',reset);clear();};
@@ -62,7 +62,7 @@ function App(){
    const signature=await provider!.request({method:'personal_sign',params:[stringToHex(challenge.message),wallet]});
    if(r!==revision||await account()!==wallet)throw new Error('Wallet modifié.');
    const session=await request({action:'login',id:challenge.id,signature});if(r!==revision)throw new Error('Session modifiée.');
-   token=session.token;expiry=session.expiresAt;setNotice('Classement activé pour une heure · relance ta course classée !');
+   token=session.token;expiry=session.expiresAt;document.querySelector('iframe')?.contentWindow?.postMessage({type:'sparking-session-ready'},'*');setNotice('Classement activé pour une heure · relance ta course classée !');
   }catch(e){setNotice(e instanceof Error?e.message:'Connexion refusée.');}finally{setWorking(false);}
  }
  return <><aside style={{border:'1px solid black',padding:10,background:'white',fontSize:12}} aria-label="Connexion au classement"><span role="status">{notice} </span><button disabled={working} onClick={login}>Activer le classement</button></aside><GameHost definition={definition} frameUrl="./game.html" walletProvider={provider}/></>;

@@ -103,3 +103,22 @@ UTC (semaine commence lundi). Course libre filtrée également par tier et bonus
 équipé. Temps arrondis une fois à la milliseconde à l’arrivée ; égalités de rang
 1, 1, 3. Session locale uniquement, remise à zéro à chaque identité/rechargement.
 Aucun faux pilote ou score injecté. « Voir le classement public » ouvre le top 100 Supabase, séparé des chronos locaux. Voir [le serveur](../../supabase/README.md) pour les contrôles et leurs limites. Le build public utilise `node scripts/build-sparking-public.mjs`.
+
+## Mini-saison Constellations (gratuite)
+Du 26 septembre 2026 00:00 UTC au 24 octobre 2026 00:00 UTC exclus.
+Dans Boutique, la collection utilise des étoiles de style sauvegardées sur le
+serveur, distinctes des objectifs de piste et des pièces de garage locales.
+Chaque Friend reçoit 10 étoiles de style pour chacune de ses trois premières
+courses classées acceptées du jour UTC. Les autres courses comptent pour les défis.
+Pass gratuit : couronne stellaire après 1 course, halo de lune après 5,
+sillage de comètes après 10. Boutique : casque comète 30, éclipse double 50,
+ondes orbitales 60. Aucun effet sur la physique, aucun RF ni argent réel.
+Les résultats déjà acceptés dans la fenêtre de saison sont crédités une fois.
+La collection et le solde suivent le Friend (y compris s’il change de propriétaire).
+Connexion signée gratuite nécessaire après rechargement pour retrouver le style
+sauvegardé. Les quatre looks de lancement restent gratuits et utilisables localement.
+Les étoiles et articles acquis persistent après la saison ; cette première boutique
+reste accessible. Pas encore de pass premium ou boutique de retour temporaire.
+Les cosmétiques pourront revenir : aucune exclusivité définitive promise.
+
+Tests : `node server/test-season-browser.mjs` et `supabase db query --linked --file supabase/tests/season.sql`.

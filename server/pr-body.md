@@ -1,7 +1,9 @@
-Le jeu conservait uniquement des chronos locaux. Cette version ajoute une compétition bêta avec classement partagé par GEN, équipement et jour/semaine/mois UTC, tout en gardant l’entraînement et l’économie simulée.
+Le jeu conservait ses chronos et cosmétiques uniquement pendant la session. Cette bêta ajoute un classement partagé et une première collection saisonnière gratuite, tout en gardant le style noir et blanc et l’économie sans RF réel.
 
-La connexion se fait par signature gratuite dans le conteneur SDK. Le serveur vérifie la propriété du Friend, le tier de l’équipement, le départ unique, la trajectoire, les étoiles, les collisions et la vitesse. L’écriture est atomique et les renvois sont idempotents. Le jeton reste hors du sandbox ; les rôles clients ne peuvent pas écrire dans les tables.
+Le classement sépare GEN, équipement et périodes UTC. Une signature gratuite identifie le pilote ; le serveur contrôle propriété, départ unique, trajectoire et durée. Les résultats sont atomiques et idempotents. Le jeton reste dans le conteneur SDK, sans accès depuis le jeu sandboxé.
 
-Validation : typage strict, contrôle FriendSDK, 36 courses de physique sur 6 GEN et 3 catégories, parcours navigateur complet à 1000 et 390 px, tests SQL transactionnels avec rollback, refus de faux accès sur l’API déployée. Aucun score fictif conservé en production.
+Constellations (26 septembre–23 octobre 2026 UTC) propose trois récompenses après 1/5/10 courses et trois cosmétiques achetables avec les étoiles de style. Les trois premières courses classées acceptées par jour rapportent chacune 10 étoiles. Le serveur sauvegarde le solde, les achats et l’équipement ; les résultats antérieurs éligibles sont crédités une seule fois. Aucun changement de performance.
 
-Limites : trajectoires synthétiques et bots possibles ; aucune récompense financière. La première signature et course avec un vrai wallet restent à effectuer par le joueur. Supabase est déployé ; la source reste proposée sur cette branche.
+Validation : typage strict, contrôle SDK, 36 parcours physiques, tests navigateur classement et saison desktop/mobile, tests SQL avec rollback (droits, idempotence, plafond, solde, déblocages, restauration et limites UTC), tests de rejet sur l’API réelle. Aucun score ou inventaire de fixture publié.
+
+Limites : bots et trajectoires synthétiques restent possibles. Aucun prix financier, pass payant ou boutique éphémère activé. La collection gratuite suit le Friend ; la boutique de cette mini-saison reste disponible après sa fin.

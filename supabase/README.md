@@ -54,3 +54,17 @@ Le build SDK standard reste un aperçu local sans cette extension de classement.
 
 La première signature avec un vrai wallet et la publication d’une vraie course
 restent une action du joueur. Aucun wallet de joueur n’a été signé par l’agent.
+
+## Persistance Constellations
+Migration 003 : comptes de style, inventaire, journal de récompenses par run_id.
+RLS et révocation des droits clients sur tables/fonctions. L’API style exige une
+session signée et une relecture de propriété pour read/buy/equip.
+Le gain est attribué dans la transaction d’acceptation de la course. Verrou par
+Friend : cap de trois récompenses/jour, achat atomique et idempotent. Le prix vient
+du catalogue SQL, jamais du navigateur. Les déblocages du pass sont automatiques.
+Dates de saison fixées côté serveur ; les résultats hors fenêtre ne rapportent rien.
+Les résultats existants sont repris dans l’ordre avec protection anti-doublon.
+Le style est restauré après la signature de connexion, hors sandbox pour le jeton.
+Tests SQL avec rollback : plafond, rejeu, doubles achats, solde, droits, équipement,
+isolation par Friend et limites UTC. Tests navigateur : achat et restauration à
+1000/390 px. Les balances de test ne sont jamais envoyées au serveur public.
