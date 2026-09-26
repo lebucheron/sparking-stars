@@ -1,4 +1,6 @@
 "use client";
+import {createDirectClick} from "./direct-click";
+import type {sampleGhost} from "./ghost";
 import {drawCosmetic,drawTrail,type Trail,type Cosmetic} from "./cosmetics";
 
 import { useEffect, useRef, useState } from "react";
@@ -14,6 +16,8 @@ export type GameWorldInteraction = Readonly<{
 }>;
 export type GameWorldProps = {
   focusRevision?: number;
+  preloadWorld?:WorldConfig;
+  ghost?:()=>ReturnType<typeof sampleGhost>;
   cosmetic?: Cosmetic;
   trail?: Trail;
   equipment?: "feet" | "rollers" | "kart";
@@ -26,11 +30,14 @@ export type GameWorldProps = {
 const VIEW = { x: 220, y: 265, width: 1160, height: 1160 / 1.5 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
-export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision }: GameWorldProps) {
+export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld }: GameWorldProps) {
+  const assetCache=useRef(new Map<WorldConfig,Awaited<ReturnType<typeof loadWorldAssets>>>()),spriteCache=useRef<{id:bigint;value:Awaited<ReturnType<ReturnType<typeof createFriendReader>["read"]>>}|null>(null);
   const root = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null);
+  const directClick=useRef<ReturnType<typeof createDirectClick>|null>(null);
+  const [clickBlocked,setClickBlocked]=useState(false);
   const mover = useRef<ReturnType<typeof createWorldMovement> | null>(null);
-  const live = useRef({ paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision });
-  live.current = { paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision };
+  const live = useRef({ paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld });
+  live.current = { paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld };
   const [near, setNear] = useState<string | null>(null), [revision, setRevision] = useState(0);
   const [status, setStatus] = useState("Loading world and Friend artwork…"), [failed, setFailed] = useState(false);
   const [size, setSize] = useState({ width: 960, height: 640 });
@@ -56,12 +63,14 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     if (!node || !context) { setFailed(true); setStatus("This browser cannot render the world."); return; }
     const previousPosition=mover.current?.state.position ?? spawn;
     const abort = new AbortController(), movement = createWorldMovement(world, previousPosition);
-    mover.current = movement; setNear(null); setFailed(false); setStatus("Loading world and Friend artwork…");
+    directClick.current=createDirectClick(world);mover.current = movement; setNear(null); setFailed(false);
+    const cached=assetCache.current.get(world),cachedSprite=spriteCache.current?.id===friendId?spriteCache.current.value:null;
+    if(!cached||!cachedSprite)setStatus("Loading world and Friend artwork…");
     let particles:{x:number;y:number;life:number}[]=[];let lastTrail:WorldPoint=spawn;let priorTrail:Trail="none";
     let frame = 0, previous = 0, lastNear: string | null = null, side: "left" | "right" = "right";
     const stop = () => { movement.stop(); previous = 0; };
     window.addEventListener("blur", stop); document.addEventListener("visibilitychange", stop);
-    void Promise.all([loadWorldAssets(world, { signals: false, color: false }, abort.signal), createFriendReader().read(friendId)]).then(([assets, sprites]) => {
+    const begin=([assets,sprites]:[Awaited<ReturnType<typeof loadWorldAssets>>,Awaited<ReturnType<ReturnType<typeof createFriendReader>["read"]>>]) => {
       if (abort.signal.aborted) return;
       setStatus("");
       const render = (now: number) => {
@@ -83,6 +92,19 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
         }
         for(const p of particles)drawTrail(context,selectedTrail,p.x,p.y,2+4*p.life/650);
         const layers = assets.objects.map(object => ({ depth: object.depth, draw: () => context.drawImage(object.image, 0, 0) }));
+        const replay=live.current.ghost?.();node.dataset.ghost=replay?"visible":"hidden";
+        if(replay){const [gx,gy]=project(...replay.position),[px,py]=project(...replay.previous),dx=gx-px,dy=gy-py;
+          node.dataset.ghostX=String(replay.position[0]);node.dataset.ghostY=String(replay.position[1]);node.dataset.ghostTime=String(replay.time);
+          const facing=Math.abs(dx)>Math.abs(dy)?dx<0?"left":"right":dy<0?"up":"down";
+          layers.push({depth:replay.position[0]+replay.position[1]-.01,draw:()=>{
+            const rows=spriteFrame(sprites,facing,Math.hypot(dx,dy)>.01,live.current.reducedMotion?0:Math.floor(replay.time/110)%8,dx<0?"left":"right").frame.rows;
+            context.save();context.globalAlpha=.28;context.fillStyle="#fff";
+            const pixels=rows.flatMap((row,ry)=>[...row].flatMap((v,rx)=>v==="#"?[[rx,ry]]:[]));
+            for(const [rx,ry] of pixels)context.fillRect(gx-40+rx*5-2,gy-75+ry*5-2,9,9);
+            context.fillStyle="#000";for(const [rx,ry] of pixels)context.fillRect(gx-40+rx*5,gy-75+ry*5,5,5);
+            context.globalAlpha=.5;context.strokeStyle="#000";context.lineWidth=1.5;context.setLineDash([3,4]);context.beginPath();context.ellipse(gx,gy+5,28,9,0,0,Math.PI*2);context.stroke();context.restore();
+          }});
+        }
         layers.push({ depth: state.position[0] + state.position[1], draw: () => {
           if (state.facing === "left" || state.facing === "right") side = state.facing;
           const rows = spriteFrame(sprites, state.facing, state.walking, live.current.reducedMotion ? 0 : Math.floor(now / 110) % 8, side).frame.rows;
@@ -113,9 +135,17 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
         frame = requestAnimationFrame(render);
       };
       frame = requestAnimationFrame(render);
-    }).catch(() => { if (!abort.signal.aborted) { setFailed(true); setStatus("World or Friend artwork could not load. Check your connection and retry."); } });
+    };
+    if(cached&&cachedSprite)begin([cached,cachedSprite]);
+    else void Promise.all([
+      loadWorldAssets(world,{signals:false,color:false},abort.signal),
+      cachedSprite?Promise.resolve(cachedSprite):createFriendReader().read(friendId),
+      preloadWorld&&preloadWorld!==world?loadWorldAssets(preloadWorld,{signals:false,color:false},abort.signal):Promise.resolve(null),
+    ]).then(([assets,sprites,alternate])=>{
+      if(abort.signal.aborted)return;assetCache.current.clear();assetCache.current.set(world,assets);if(alternate&&preloadWorld)assetCache.current.set(preloadWorld,alternate);spriteCache.current={id:friendId,value:sprites};begin([assets,sprites]);
+    }).catch(()=>{if(!abort.signal.aborted){setFailed(true);setStatus("World or Friend artwork could not load. Check your connection and retry.");}});
     return () => { abort.abort(); cancelAnimationFrame(frame); stop(); window.removeEventListener("blur", stop); document.removeEventListener("visibilitychange", stop); };
-  }, [friendId, world, spawn, revision]);
+  }, [friendId, world, spawn, revision, preloadWorld]);
 
   return <div ref={root} className="rf-world-view">
     <div className="rf-world-surface" style={size}>
@@ -123,7 +153,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
         aria-label="Circuit Sparking Stars. Flèches ou ZQSD pour marcher. Cliquez ou touchez une destination."
         onBlur={() => mover.current?.stop()}
         onKeyDown={event => {
-          if (paused || status) return;
+          if (paused || status) return;setClickBlocked(false);
           if (event.key.toLowerCase() === "e" && !event.repeat && mover.current) {
             const target = nearest(mover.current.state.position);
             if (target) { event.preventDefault(); onInteract(target); }
@@ -134,8 +164,10 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
         onPointerDown={event => {
           if (paused || status) return;
           event.currentTarget.focus(); const rect = event.currentTarget.getBoundingClientRect();
-          mover.current?.moveTo(unproject(VIEW.x + (event.clientX - rect.left) * VIEW.width / rect.width, VIEW.y + (event.clientY - rect.top) * VIEW.height / rect.height));
+          const destination=unproject(VIEW.x + (event.clientX - rect.left) * VIEW.width / rect.width, VIEW.y + (event.clientY - rect.top) * VIEW.height / rect.height);
+          if(mover.current&&directClick.current){const aim=directClick.current(mover.current.state.position,destination);mover.current.stop();mover.current.moveTo(aim.target);setClickBlocked(aim.blocked);}
         }} />
+      {!status&&clickBlocked&&!paused&&<p className="click-feedback" role="status">Obstacle : vise un point à côté pour le contourner.</p>}
       {!status && interactions.map(item => { const [x, y] = project(...item.position); return <button type="button" className="rf-world-prompt" key={item.id}
         style={{ left: `${(x - VIEW.x) / 9.6}%`, top: `${(y - VIEW.y + (item.labelOffset ?? 34)) / 6.4}%` }} disabled={paused || near !== item.id}
         onClick={() => onInteract(item.id)}>{item.label}<small>{near === item.id ? "E / tap to interact" : "Walk closer"}</small></button>; })}

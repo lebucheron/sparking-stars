@@ -7,3 +7,11 @@ Constellations (26 septembre–23 octobre 2026 UTC) propose trois récompenses a
 Validation : typage strict, contrôle SDK, 36 parcours physiques, tests navigateur classement et saison desktop/mobile, tests SQL avec rollback (droits, idempotence, plafond, solde, déblocages, restauration et limites UTC), tests de rejet sur l’API réelle. Aucun score ou inventaire de fixture publié.
 
 Limites : bots et trajectoires synthétiques restent possibles. Aucun prix financier, pass payant ou boutique éphémère activé. La collection gratuite suit le Friend ; la boutique de cette mini-saison reste disponible après sa fin.
+
+
+Le fantôme rejoue le meilleur tour de la session par catégorie, sans collision et
+avec contrôle d’affichage. Le clic/tactile ne contourne plus automatiquement les
+obstacles. Le casse-brique utilise les assets préchargés pour éviter le chargement
+en pleine course. Tests supplémentaires : rejeu desktop/mobile, interpolation et
+isolation des catégories, arrêts directs sur les six GEN, destruction sans requête
+réseau ni écran de chargement. Aucun changement des vitesses ou des collisions.

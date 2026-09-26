@@ -81,7 +81,7 @@ Sélection d’équipement indépendante de la course libre, même avec zéro é
 Records séparés par mode et équipement, conservés seulement durant la session.
 Course libre : règles précédentes avec gains de test, avantages de tier et énergie.
 Compétition bêta : classement public, toutes les étoiles sans consommable ni avantage de tier. Catégories à pied, rollers (tier 2+) et kart (tier 4). Aucun quota quotidien ni gain RF.
-Fantôme et temps intermédiaires restent à implémenter.
+Fantôme personnel disponible (voir ci-dessous). Temps intermédiaires à venir.
 
 ## Vestiaire
 Dans la boutique : au naturel, casque damier, casquette du paddock, antenne étoile.
@@ -122,3 +122,25 @@ reste accessible. Pas encore de pass premium ou boutique de retour temporaire.
 Les cosmétiques pourront revenir : aucune exclusivité définitive promise.
 
 Tests : `node server/test-season-browser.mjs` et `supabase db query --linked --file supabase/tests/season.sql`.
+
+## Fantôme et contrôles directs
+Après un tour complet, le meilleur parcours de cette session est rejoué par un
+Friend translucide sans collision. Catégories séparées par Friend, GEN, mode,
+équipement et version des règles ; aucun fantôme en course libre. En compétition,
+la sauvegarde attend l’acceptation serveur. Un tour incomplet/refusé ne remplace
+pas le fantôme. Une égalité conserve le précédent. Réglage dans Modes, désactivé
+par défaut avec réduction des animations. Temps actif uniquement : pauses et
+décompte n’avancent pas le fantôme. Fin de rejeu à l’arrivée. Aucun effet physique.
+Conservation en mémoire uniquement : recharger ou changer de Friend efface le
+fantôme. Le serveur conserve les temps, pas les anciennes trajectoires ; les
+records publiés avant cette version ne peuvent donc pas devenir des fantômes.
+
+Clic/tactile : déplacement direct vers le point visé, arrêt devant le premier
+obstacle. Aucun contournement automatique ; le joueur vise lui-même les détours.
+Collisions/rayon inchangés, clavier conservé. Les records existants restent valides.
+Le casse-brique utilise un décor sans barricade préchargé avant le départ : aucune
+lecture d’artwork ni écran de chargement lors de la destruction en course libre.
+
+Tests : `node server/test-ghost-controls.mjs`, `node server/test-ghost-browser.mjs`,
+`node server/test-breaker-browser.mjs`. Le pilote de tests calcule ses propres
+points de clic intermédiaires ; ce planificateur ne fait pas partie du jeu livré.

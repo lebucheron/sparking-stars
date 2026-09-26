@@ -1,4 +1,5 @@
 
+import {walkTo} from './test-drive.mjs';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {project} from '@rarefriends/friendsdk/world';
@@ -36,7 +37,7 @@ for(const width of [1000,390]){
   const canvas=game.locator('canvas[data-x]'),route=terrains[2].route;
   for(let i=1;i<=route.length;i++){
    const box=await canvas.boundingBox(),[x,y]=project(...route[i%route.length]);
-   await canvas.click({position:{x:(x-220)*box.width/1160,y:(y-265)*box.height/(1160/1.5)}});
+   await walkTo(game,canvas,3,route[i%route.length]);
    await game.getByTestId('stars').filter({hasText:`★ ${i}/${route.length}`}).waitFor();
   }
   try{await game.getByText(/Chrono publié :/).waitFor();}catch(e){console.log('FINISH UI',await game.locator('.race-card').innerText());throw e;}assert.equal(finishes,1);

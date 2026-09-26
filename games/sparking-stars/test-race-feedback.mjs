@@ -1,3 +1,4 @@
+import {walkTo} from '../../server/test-drive.mjs';
 import {mkdir} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {testGame} from './test-profile-helper.mjs';
@@ -15,7 +16,7 @@ await testGame('games/sparking-stars',{width:390,height:850,timeout:25000,check:
  await page.locator('.rf-game-frame').screenshot({path:`${out}/countdown.png`});
  await game.locator('.countdown').waitFor({state:'hidden'});
  const points=[[146,277],[88,192],[146,107],[288,72],[430,107],[488,192],[430,277],[288,312]];
- for(let i=0;i<points.length;i++){const b=await canvas.boundingBox(),[x,y]=project(...points[i]);await canvas.tap({position:{x:(x-220)*b.width/1160,y:(y-265)*b.height/(1160/1.5)}});await game.getByTestId('stars').filter({hasText:`★ ${i+1}/8`}).waitFor();}
+ for(let i=0;i<points.length;i++){const b=await canvas.boundingBox(),[x,y]=project(...points[i]);await walkTo(game,canvas,1,points[i]);await game.getByTestId('stars').filter({hasText:`★ ${i+1}/8`}).waitFor();}
  await game.getByTestId('prize').waitFor();
  assert.equal(await game.locator('.medal-targets').count(),1);
  const fits=await game.locator('.race-card').evaluate(el=>{const a=el.getBoundingClientRect(),b=document.querySelector('.hint').getBoundingClientRect();return a.bottom<b.top&&a.left>=0&&a.right<=innerWidth;});assert.ok(fits,'Finish card does not overlap footer');
