@@ -15,3 +15,5 @@ obstacles. Le casse-brique utilise les assets préchargés pour éviter le charg
 en pleine course. Tests supplémentaires : rejeu desktop/mobile, interpolation et
 isolation des catégories, arrêts directs sur les six GEN, destruction sans requête
 réseau ni écran de chargement. Aucun changement des vitesses ou des collisions.
+
+Présentation adaptative : cadre paddock monochrome sur ordinateur, mode cinéma fonctionnel et interface compacte sur téléphone. Vérifiée visuellement à 1440, 1366 et 390 px, avec contrôles et plein écran.

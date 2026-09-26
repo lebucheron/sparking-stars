@@ -24,6 +24,9 @@ async function account(){
  if(chain!=='0x1237'||!Array.isArray(accounts)||typeof accounts[0]!=='string')throw new Error('Connecte ton wallet sur Robinhood dans le jeu.');return accounts[0].toLowerCase();
 }
 function App(){
+ const [cinema,setCinema]=useState(false);
+ useEffect(()=>{const changed=()=>setCinema(Boolean(document.fullscreenElement));document.addEventListener('fullscreenchange',changed);return()=>document.removeEventListener('fullscreenchange',changed);},[]);
+ async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.querySelector('.paddock-window')?.requestFullscreen();}catch{setNotice('Le plein écran est indisponible dans ce navigateur.');}}
  const [notice,setNotice]=useState('Classement bêta · signature gratuite pour publier tes courses.'),[working,setWorking]=useState(false);
  useEffect(()=>{
   const reset=()=>{clear();setNotice('Session classement fermée. Active-la de nouveau pour publier.');};
@@ -65,6 +68,11 @@ function App(){
    token=session.token;expiry=session.expiresAt;document.querySelector('iframe')?.contentWindow?.postMessage({type:'sparking-session-ready'},'*');setNotice('Classement activé pour une heure · relance ta course classée !');
   }catch(e){setNotice(e instanceof Error?e.message:'Connexion refusée.');}finally{setWorking(false);}
  }
- return <><aside style={{border:'1px solid black',padding:10,background:'white',fontSize:12}} aria-label="Connexion au classement"><span role="status">{notice} </span><button disabled={working} onClick={login}>Activer le classement</button></aside><GameHost definition={definition} frameUrl="./game.html" walletProvider={provider}/></>;
+ return <section className="paddock-window" aria-label="Sparking Stars — le paddock">
+  <header className="paddock-titlebar"><div className="paddock-brand"><span className="paddock-mark" aria-hidden="true">✦</span><div><strong>SPARKING STARS</strong><small>RARE FRIENDS · RACE CLUB</small></div></div><div className="paddock-window-actions"><span className="season-tag">01 / CONSTELLATIONS</span><button className="cinema-button" onClick={()=>void fullscreen()} aria-pressed={cinema}>{cinema?"Quitter le plein écran":"Mode cinéma ↗"}</button></div></header>
+  <aside className="paddock-connection" aria-label="Connexion au classement"><span className="connection-note" role="status">{notice}</span><button disabled={working} onClick={login}>Activer le classement</button></aside>
+  <div className="paddock-stage"><GameHost definition={definition} frameUrl="./game.html" walletProvider={provider}/></div>
+  <footer className="paddock-footer"><span>6 ÎLES / UN CHRONO À BATTRE</span><span className="footer-checks" aria-hidden="true"/><span>BÊTA · 100 % MONOCHROME</span></footer>
+ </section>;
 }
 createRoot(document.getElementById('root')!).render(<App/>);

@@ -144,3 +144,11 @@ lecture d’artwork ni écran de chargement lors de la destruction en course lib
 Tests : `node server/test-ghost-controls.mjs`, `node server/test-ghost-browser.mjs`,
 `node server/test-breaker-browser.mjs`. Le pilote de tests calcule ses propres
 points de clic intermédiaires ; ce planificateur ne fait pas partie du jeu livré.
+
+## Présentation adaptative
+Le conteneur public adopte un cadre de paddock monochrome sur ordinateur, ajusté
+à la hauteur de fenêtre, avec un bouton Mode cinéma (Fullscreen API sur geste
+explicite du joueur). Sur téléphone, le cadre décoratif disparaît et le jeu garde
+un format portrait avec les commandes tactiles. Aucun changement des règles.
+Tests : `node server/test-presentation.mjs` (1440×1000, 1366×768 et 390×844 ;
+bounds, menus, clavier et entrée/sortie du plein écran). Captures dans artifacts/.
