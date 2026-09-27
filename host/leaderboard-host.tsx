@@ -30,7 +30,12 @@ function App(){
  const [authNeeded,setAuthNeeded]=useState(false);
  const [hasFriend,setHasFriend]=useState(false);
  useEffect(()=>{const changed=()=>setCinema(Boolean(document.fullscreenElement));document.addEventListener('fullscreenchange',changed);return()=>document.removeEventListener('fullscreenchange',changed);},[]);
- async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.querySelector('.paddock-window')?.requestFullscreen();}catch{setNotice('Le plein écran est indisponible dans ce navigateur.');}}
+ async function fullscreen(){
+  if(cinema){setCinema(false);if(document.fullscreenElement)try{await document.exitFullscreen();}catch{}return;}
+  setCinema(true);try{await document.querySelector('.paddock-window')?.requestFullscreen();}catch{/* Focus mode also works without native fullscreen. */}
+ }
+ useEffect(()=>{const send=()=>document.querySelector('iframe')?.contentWindow?.postMessage({type:'sparking-focus',active:cinema},'*');send();document.addEventListener('load',send,true);const escape=(e:KeyboardEvent)=>{if(e.key==='Escape')setCinema(false);};window.addEventListener('keydown',escape);return()=>{document.removeEventListener('load',send,true);window.removeEventListener('keydown',escape);};},[cinema]);
+
  const [notice,setNotice]=useState('Classement bêta · signature gratuite pour publier tes courses.'),[working,setWorking]=useState(false);
  useEffect(()=>{
   const reset=()=>{clear();setAuthNeeded(false);setHasFriend(false);setNotice('Session classement fermée. Active-la de nouveau pour publier.');};
@@ -74,11 +79,12 @@ function App(){
    token=session.token;expiry=session.expiresAt;setAuthNeeded(false);document.querySelector('iframe')?.contentWindow?.postMessage({type:'sparking-session-ready'},'*');setNotice('Classement activé pour une heure · relance ta course classée !');
   }catch(e){setNotice(e instanceof Error?e.message:'Connexion refusée.');}finally{setWorking(false);}
  }
- return <section className="paddock-window" aria-label="Sparking Stars — le paddock">
-  <header className="paddock-titlebar"><div className="paddock-brand"><span className="paddock-mark" aria-hidden="true">✦</span><div><strong>SPARKING STARS</strong><small>RARE FRIENDS · RACE CLUB</small></div></div><div className="paddock-window-actions"><DemoRecorder/><span className="season-tag">01 / CONSTELLATIONS</span><button className="cinema-button" onClick={()=>void fullscreen()} aria-pressed={cinema}>{cinema?"Quitter le plein écran":"Mode cinéma ↗"}</button></div></header>
+ return <section className={`paddock-window${cinema?" race-focus":""}`} aria-label="Sparking Stars — le paddock">
+  <header className="paddock-titlebar"><div className="paddock-brand"><span className="paddock-mark" aria-hidden="true">✦</span><div><strong>SPARKING STARS</strong><small>RARE FRIENDS · RACE CLUB</small></div></div><div className="paddock-window-actions"><DemoRecorder/><span className="season-tag">01 / CONSTELLATIONS</span></div></header>
   {!injected&&!hasFriend&&<p className="wallet-connect-hint">Avec « Connect wallet », autorise MetaMask puis reviens ici pour jouer dans ce navigateur.</p>}
   {authNeeded&&<aside className="paddock-connection" aria-label="Connexion au classement"><span className="connection-note" role="status">{notice}</span><button disabled={working} onClick={login}>Activer le classement</button><button disabled={working} onClick={()=>setAuthNeeded(false)} aria-label="Fermer la demande de connexion">Plus tard</button></aside>}
   <div className="paddock-stage"><GameHost definition={definition} frameUrl="./game.html" walletProvider={provider}/></div>
+  <button className="race-fullscreen" onClick={()=>void fullscreen()} aria-pressed={cinema} aria-label={cinema?"Quitter la vue course":"Agrandir la course"} title={cinema?"Quitter la vue course":"Agrandir la course"}><span aria-hidden="true">{cinema?"↙":"⛶"}</span></button>
   <footer className="paddock-footer"><span>6 ÎLES / UN CHRONO À BATTRE</span><span className="footer-checks" aria-hidden="true"/><span>BÊTA · 100 % MONOCHROME</span></footer>
  </section>;
 }

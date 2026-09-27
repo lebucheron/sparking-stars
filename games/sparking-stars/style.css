@@ -80,3 +80,11 @@
 @media(max-height:520px) and (max-width:1100px) and (min-width:601px){.sparking .rf-world-surface{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.click-feedback{position:fixed;bottom:116px;z-index:3}}
 
 @media(max-width:600px),(max-height:520px) and (max-width:1100px){.click-feedback{display:none}}
+
+.race-focus .terrain-switch,.race-focus .shop-switch,.race-focus .mode-switch,.race-focus .board-switch,.race-focus .creator-switch,.race-focus .hint,.race-focus .hud h1,.race-focus .hud>div:first-child,.race-focus .score small{display:none}
+.race-focus .hud{top:8px;left:12px;right:12px;justify-content:flex-end}.race-focus .score{flex-direction:row;align-items:center;gap:12px}
+.race-focus .race-progress{top:53px}.race-focus .sparking:has(.race-status) .rf-world-view{inset:64px 0 112px}
+.race-focus .race-status{top:auto;bottom:55px;left:12px;right:145px;height:44px;background:#fff}
+.race-focus .bonus-bar{bottom:55px;left:auto;right:8px;width:125px;height:44px}.race-focus .bonus-bar>span{display:none}
+.race-focus .pace-label{top:auto;bottom:102px}.race-focus .click-feedback{display:none}
+.race-focus .race-card,.race-focus .race-card.finished{top:80px;max-height:calc(100% - 145px);overflow:auto}

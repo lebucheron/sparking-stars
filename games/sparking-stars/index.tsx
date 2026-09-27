@@ -41,6 +41,8 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   const [cosmetic,setCosmetic]=useState<Cosmetic>("none");
   useEffect(()=>{let active=true;const restore=async(e:MessageEvent)=>{if(e.source!==window.parent||e.data?.type!=="sparking-session-ready")return;try{const saved=await publicApi("style",{friendId:String(friendId),operation:"read"});if(active){setCosmetic(saved.cosmetic);setTrail(saved.trail);}}catch{/* The wardrobe offers an explicit retry. */}};window.addEventListener("message",restore);return()=>{active=false;window.removeEventListener("message",restore);};},[friendId]);
   const [mode,setMode]=useState<Mode>("training"),[modesOpen,setModesOpen]=useState(false);
+  useEffect(()=>{const focus=(e:MessageEvent)=>{if(e.source===window.parent&&e.data?.type==='sparking-focus')document.documentElement.classList.toggle('race-focus',e.data.active===true);};window.addEventListener('message',focus);return()=>{window.removeEventListener('message',focus);document.documentElement.classList.remove('race-focus');};},[]);
+
   const [trainingEquipment,setTrainingEquipment]=useState<Equipment>("feet");
   const [profile,setProfile]=useState<{generation:number;tier:number}|null>(null);
   const [selected,setSelected]=useState(0),[choosing,setChoosing]=useState(false);
