@@ -48,7 +48,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
   useEffect(() => {
     if (!root.current) return;
     const observer = new ResizeObserver(([entry]) => {
-      const width = Math.min(entry.contentRect.width, entry.contentRect.height * 1.5);
+      const width = Math.min(entry.contentRect.width, entry.contentRect.height * (window.matchMedia("(max-height:520px) and (min-width:601px)").matches ? 2.5 : 1.5));
       setSize({ width, height: width / 1.5 });
     });
     observer.observe(root.current); return () => observer.disconnect();
