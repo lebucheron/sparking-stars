@@ -1,7 +1,8 @@
+import {walkTo} from '../../server/test-drive.mjs';
 import assert from 'node:assert/strict';
 import {testGame} from './test-profile-helper.mjs';
 import {project} from '@rarefriends/friendsdk/world';
-await testGame('games/sparking-stars',{profile:{generation:1,tier:2},width:390,height:850,timeout:25000,check:async({page,game})=>{
+await testGame('games/sparking-stars',{profile:{generation:6,tier:2},width:390,height:850,timeout:25000,check:async({page,game})=>{
  await game.getByRole('button',{name:'C’est parti !',exact:true}).waitFor();
  await game.getByRole('button',{name:/Boutique ·/}).click();
  await game.getByRole('button',{name:'Acheter Rollers · 180 pièces',exact:true}).click();
@@ -15,7 +16,7 @@ await testGame('games/sparking-stars',{profile:{generation:1,tier:2},width:390,h
  await game.locator('.countdown').waitFor({state:'hidden'});
  const canvas=game.locator('canvas[data-x]');
  const points=[[146,277],[88,192],[146,107],[288,72],[430,107],[488,192],[430,277],[288,312]];
- for(let i=0;i<points.length;i++){const b=await canvas.boundingBox(),[x,y]=project(...points[i]);await canvas.tap({position:{x:(x-220)*b.width/1160,y:(y-265)*b.height/(1160/1.5)}});await game.getByTestId('stars').filter({hasText:`★ ${i+1}/8`}).waitFor();}
+ for(let i=0;i<points.length;i++){const b=await canvas.boundingBox(),[x,y]=project(...points[i]);await walkTo(game,canvas,6,points[i]);await game.getByTestId('stars').filter({hasText:`★ ${i+1}/8`}).waitFor();}
  assert.match(await game.getByTestId('prize').innerText(),/Entraînement sans récompense/);
  await game.getByRole('button',{name:'Boutique · 120 ◇',exact:true}).click();
  assert.equal(await game.getByRole('button',{name:'Rollers · 3/3 courses',exact:true}).count(),1);

@@ -9,3 +9,6 @@ contracts/deployments/
 
 site/
 artifacts/
+
+build-public/
+build-preview/

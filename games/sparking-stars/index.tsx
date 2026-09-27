@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import type { GameComponentProps } from "@rarefriends/friendsdk/runtime";
 import { getWorldPreset, validateWorld, project, type WorldPoint } from "@rarefriends/friendsdk/world";
+import {ghostKey,makeGhost,sampleGhost,betterGhost,type Ghost} from "./ghost";
 import { GameWorld } from "./circuit-world";
 import "@rarefriends/friendsdk/world-view.css";
 import "./style.css";
@@ -9,21 +10,36 @@ import "./style.css";
 import { terrains, distanceToRoute } from "./terrains";
 import {readFriendProfile} from "./friend-profile";
 import type {Cosmetic,Trail} from "./cosmetics";
+import {CreatorChallenge} from "./creator-challenge";
+import {PublicBoard} from "./public-board";
+import {publicApi} from "./public-api";
+import {RULES} from "./rules-version";
 import {Leaderboard} from "./leaderboard";
 import {preciseTime,type Lap} from "./leaderboard-model";
 import {Shop} from "./shop";
 import {initialWallet,transact,raceReward,medalTargets,circuitDistance,labels,type Action,type Equipment,type Bonus} from "./shop-model";
 const noInteractions=[] as const;
-type Mode="training"|"free";
+type Mode="training"|"free"|"ranked";
 type Race={countdown:number;next:number;elapsed:number;running:boolean;done:boolean};
 const fresh=():Race=>({countdown:0,next:1,elapsed:0,running:false,done:false});
 const time=preciseTime;
 export default function SparkingStars({friendId,client,paused}:GameComponentProps){
   const [boardOpen,setBoardOpen]=useState(false),[laps,setLaps]=useState<Lap[]>([]);
   const lapId=useRef(0);
+  const [creatorTarget,setCreatorTarget]=useState<number|null>(null);const runCreator=useRef<number|null>(null);
+  const ghosts=useRef<Record<string,Ghost>>({}),runGhost=useRef<Ghost|null>(null);
+  const [ghostEnabled,setGhostEnabled]=useState(true);
+  const ghostId=(m:string,e:string)=>ghostKey(String(friendId),terrain.gen,m,e,RULES);
+  function saveGhost(){const c=config.current;if(c.mode==="free")return;const key=ghostId(c.mode,c.equipment),best=betterGhost(ghosts.current[key],makeGhost(trace.current));if(best)ghosts.current[key]=best;}
+
+  const [publicOpen,setPublicOpen]=useState(false),[serverStatus,setServerStatus]=useState(""),[starting,setStarting]=useState(false);
+  const [retrySend,setRetrySend]=useState(false);
+  const ticket=useRef<string|null>(null),trace=useRef<number[][]>([]),epoch=useRef(0);
+  useEffect(()=>()=>{epoch.current++;},[]);
   const [trail,setTrail]=useState<Trail>("none");
   const [personalBest,setPersonalBest]=useState<string|null>(null);
   const [cosmetic,setCosmetic]=useState<Cosmetic>("none");
+  useEffect(()=>{let active=true;const restore=async(e:MessageEvent)=>{if(e.source!==window.parent||e.data?.type!=="sparking-session-ready")return;try{const saved=await publicApi("style",{friendId:String(friendId),operation:"read"});if(active){setCosmetic(saved.cosmetic);setTrail(saved.trail);}}catch{/* The wardrobe offers an explicit retry. */}};window.addEventListener("message",restore);return()=>{active=false;window.removeEventListener("message",restore);};},[friendId]);
   const [mode,setMode]=useState<Mode>("training"),[modesOpen,setModesOpen]=useState(false);
   const [trainingEquipment,setTrainingEquipment]=useState<Equipment>("feet");
   const [profile,setProfile]=useState<{generation:number;tier:number}|null>(null);
@@ -31,6 +47,7 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   const terrain=terrains[selected], route=terrain.route, spawn=route[0];
   const [wallet,setWallet]=useState(initialWallet), walletRef=useRef(initialWallet());
   const [shopping,setShopping]=useState(false),[shopMessage,setShopMessage]=useState("");
+  useEffect(()=>{void publicApi("context",{needed:mode==="ranked"||shopping}).catch(()=>{});},[mode,shopping]);
   const [broken,setBroken]=useState(false),[nearWall,setNearWall]=useState(false),[used,setUsed]=useState(false);
   const [prize,setPrize]=useState<{medal:string;coins:number}|null>(null);
   const config=useRef({mode:"training" as Mode,equipment:"feet" as Equipment,bonus:"none" as Bonus,tier:0,id:0,used:false,boost:0,gifted:false});
@@ -40,7 +57,7 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   const wall=useMemo(()=>[(route[0][0]+route[1][0])/2,(route[0][1]+route[1][1])/2] as WorldPoint,[route]);
   const world=useMemo(()=>broken?terrain.world:validateWorld({...terrain.world,props:[...terrain.world.props,{type:"crate",x:wall[0],y:wall[1],scale:1,footprint:{x:-12,y:-12,w:24,h:24}}]}),[terrain,wall,broken]);
   function act(a:Action){const result=transact(walletRef.current,a);if(result.ok){walletRef.current=result.wallet;setWallet(result.wallet);}setShopMessage(result.message);return result.ok;}
-  function useBonus(){const c=config.current;if(paused||shopping||choosing||modesOpen||boardOpen||!race.current.running||race.current.countdown>0||c.used||c.bonus==="none")return;
+  function useBonus(){const c=config.current;if(paused||shopping||choosing||modesOpen||boardOpen||publicOpen||!race.current.running||race.current.countdown>0||c.used||c.bonus==="none")return;
     if(c.bonus==="breaker"&&Math.hypot(position.current[0]-wall[0],position.current[1]-wall[1])>85){setShopMessage("Rapproche-toi de la barricade.");return;}
     if(act({type:"use",bonus:c.bonus})){c.used=true;setUsed(true);if(c.bonus==="boost")c.boost=3000;else setBroken(true);}
   }
@@ -48,34 +65,51 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.code==="Space"&&!e.repeat&&!(e.target instanceof HTMLButtonElement)&&race.current.running){e.preventDefault();bonusHandler.current();}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);},[]);
   const race=useRef<Race>(fresh());
   const [hud,setHud]=useState(fresh),[run,setRun]=useState(0);
-  const comparison=(hud.running||hud.done)?config.current:{mode,equipment:mode==="training"?trainingEquipment:wallet.equipped,tier:mode==="training"?0:wallet.tier,bonus:mode==="free"&&wallet.bonus!=="none"&&wallet.stock[wallet.bonus]>0?wallet.bonus:"none"};
-  const targets=medalTargets(terrain.gen,circuitDistance(route),comparison.equipment);
+  const comparison=(hud.running||hud.done)?config.current:{mode,equipment:mode!=="free"?trainingEquipment:wallet.equipped,tier:mode!=="free"?0:wallet.tier,bonus:mode==="free"&&wallet.bonus!=="none"&&wallet.stock[wallet.bonus]>0?wallet.bonus:"none"};
+  const targets=medalTargets(terrain.level,circuitDistance(route),comparison.equipment);
   const offroad=distanceToRoute(position.current,route)>terrain.width/2;
   const best=records[`${selected}-${comparison.mode}-${comparison.equipment}-${comparison.tier}-${comparison.bonus}`]??null;
   const [ready,setReady]=useState(false),[error,setError]=useState(""),[retry,setRetry]=useState(0);
   const [reduced,setReduced]=useState(false);
   useEffect(()=>{let active=true;setReady(false);setError("");race.current=fresh();setHud(fresh());setRecords({});walletRef.current=initialWallet();setWallet(walletRef.current);setShopping(false);setPrize(null);setBroken(false);
-    setProfile(null);setBoardOpen(false);setLaps([]);lapId.current=0;setCosmetic("none");setTrail("none");setPersonalBest(null);setMode("training");setModesOpen(false);setTrainingEquipment("feet");
+    setCreatorTarget(null);runCreator.current=null;ghosts.current={};runGhost.current=null;epoch.current++;ticket.current=null;setRetrySend(false);setServerStatus("");setPublicOpen(false);setProfile(null);setBoardOpen(false);setLaps([]);lapId.current=0;setCosmetic("none");setTrail("none");setPersonalBest(null);setMode("training");setModesOpen(false);setTrainingEquipment("feet");
     Promise.all([client.read(),readFriendProfile(friendId)]).then(([snapshot,official])=>{
       if(!active)return;if(snapshot.friendId!==friendId)throw new Error("Le Friend a changé.");
-      setProfile(official);setSelected(official.generation-1);walletRef.current=initialWallet(official.tier);setWallet(walletRef.current);setReady(true);
+      setProfile(official);setSelected(official.generation-1);walletRef.current=initialWallet(official.tier);setWallet(walletRef.current);setReady(true);void publicApi("prepare",{friendId:String(friendId)}).catch(()=>{});
     }).catch(()=>{if(active)setError("Impossible de lire la GEN et le tier officiels. Vérifie ta connexion puis réessaie.");});
     return()=>{active=false;};},[client,friendId,retry]);
-  useEffect(()=>{const media=matchMedia("(prefers-reduced-motion: reduce)");const update=()=>setReduced(media.matches);update();media.addEventListener("change",update);return()=>media.removeEventListener("change",update);},[]);
-  const start=()=>{if(paused||!ready)return;if(mode==="free"&&!act({type:"start"})){setShopping(true);return;}
-    const w=walletRef.current;config.current={mode,equipment:mode==="training"?trainingEquipment:w.equipped,bonus:mode==="free"&&w.bonus!=="none"&&w.stock[w.bonus]>0?w.bonus:"none",tier:mode==="training"?0:w.tier,id:config.current.id+1,used:false,boost:0,gifted:false};
+  useEffect(()=>{const media=matchMedia("(prefers-reduced-motion: reduce)");const update=()=>{setReduced(media.matches);if(media.matches)setGhostEnabled(false);};update();media.addEventListener("change",update);return()=>media.removeEventListener("change",update);},[]);
+  const start=async()=>{if(paused||!ready||starting)return;
+    const current=++epoch.current;ticket.current=null;setRetrySend(false);setServerStatus("");
+    race.current=fresh();setHud(fresh());
+    if(mode==="ranked"){
+      setStarting(true);setServerStatus("Préparation du départ côté serveur…");
+      try{const run=await publicApi('start',{friendId:String(friendId),equipment:trainingEquipment,rules:RULES});if(current!==epoch.current)return;if(run.generation!==terrain.gen||run.rules!==RULES)throw new Error("Le terrain a changé : recharge le jeu.");ticket.current=run.id;setServerStatus("Départ enregistré · toutes les étoiles, sans bonus.");}
+      catch(e){if(current===epoch.current)setServerStatus(e instanceof Error?e.message:"Serveur indisponible. L’entraînement reste accessible.");return;}
+      finally{setStarting(false);}
+    }
+    runCreator.current=mode==="ranked"&&trainingEquipment==="feet"?creatorTarget:null;runGhost.current=mode==="free"?null:ghosts.current[ghostId(mode,trainingEquipment)]??null;trace.current=[[0,spawn[0],spawn[1]]];if(mode==="free"&&!act({type:"start"})){setShopping(true);return;}
+    const w=walletRef.current;config.current={mode,equipment:mode!=="free"?trainingEquipment:w.equipped,bonus:mode==="free"&&w.bonus!=="none"&&w.stock[w.bonus]>0?w.bonus:"none",tier:mode!=="free"?0:w.tier,id:config.current.id+1,used:false,boost:0,gifted:false};
     setModesOpen(false);setShopping(false);setChoosing(false);setBroken(false);setUsed(false);setPrize(null);setPersonalBest(null);setNearWall(false);setShopMessage("");race.current={...fresh(),running:true,countdown:3000};setHud({...race.current});setRun(n=>n+1);};
   function step(point:WorldPoint,delta:number){
-    position.current=point;const r=race.current;if(!r.running||paused||shopping||choosing||modesOpen||boardOpen||delta===0)return;
+    position.current=point;const r=race.current;if(!r.running||paused||shopping||choosing||modesOpen||boardOpen||publicOpen||delta===0)return;
     if(r.countdown>0){r.countdown=Math.max(0,r.countdown-delta);setHud({...r});return;}
     config.current.boost=Math.max(0,config.current.boost-delta);setNearWall(!broken&&Math.hypot(point[0]-wall[0],point[1]-wall[1])<=85);
-    r.elapsed+=delta;const target=route[r.next%route.length];
+    r.elapsed+=delta;if(config.current.mode!=="free"&&trace.current.length<=40000)trace.current.push([r.elapsed,point[0],point[1]]);const target=route[r.next%route.length];
     if(Math.hypot(point[0]-target[0],point[1]-target[1])<terrain.reach){
       r.next++;
       if(config.current.tier>=1&&!config.current.gifted&&r.next===Math.floor(route.length/2)){r.next++;config.current.gifted=true;}
-      if(r.next>route.length){r.elapsed=Math.round(r.elapsed);r.running=false;r.done=true;const c=config.current;const key=`${selected}-${c.mode}-${c.equipment}-${c.tier}-${c.bonus}`;const finishedId=++lapId.current;setLaps(old=>[...old,{id:finishedId,friendId:String(friendId),gen:terrain.gen,mode:c.mode,equipment:c.equipment,tier:c.tier,bonus:c.bonus,ms:r.elapsed,finishedAt:Date.now()}]);const previousBest=records[key];setPersonalBest(previousBest===undefined?"Premier record personnel !":r.elapsed<previousBest?`Nouveau record · −${time(previousBest-r.elapsed)}`:null);setRecords(old=>({...old,[key]:Math.min(old[key]??Infinity,r.elapsed)}));const reward=raceReward(r.elapsed,terrain.gen,circuitDistance(route),c.equipment);setPrize({...reward,coins:c.mode==="training"?0:reward.coins});if(c.mode==="free")act({type:"reward",run:c.id,coins:reward.coins});}
+      if(r.next>route.length){r.elapsed=Math.round(r.elapsed);r.running=false;r.done=true;const c=config.current;const key=`${selected}-${c.mode}-${c.equipment}-${c.tier}-${c.bonus}`;const finishedId=++lapId.current;if(c.mode!=="ranked")setLaps(old=>[...old,{id:finishedId,friendId:String(friendId),gen:terrain.gen,mode:c.mode==="free"?"free":"training",equipment:c.equipment,tier:c.tier,bonus:c.bonus,ms:r.elapsed,finishedAt:Date.now()}]);const previousBest=records[key];setPersonalBest(previousBest===undefined?"Premier record personnel !":r.elapsed<previousBest?`Nouveau record · −${time(previousBest-r.elapsed)}`:null);setRecords(old=>({...old,[key]:Math.min(old[key]??Infinity,r.elapsed)}));const reward=raceReward(r.elapsed,terrain.level,circuitDistance(route),c.equipment);setPrize({...reward,coins:c.mode!=="free"?0:reward.coins});if(c.mode==="free")act({type:"reward",run:c.id,coins:reward.coins});
+      if(c.mode==="training")saveGhost();if(c.mode==="ranked"&&ticket.current)void publish();}
+
     }
     setHud({...r});
+  }
+  async function publish(){
+    if(!ticket.current)return;const completed=epoch.current;setStarting(true);setRetrySend(false);setServerStatus("Vérification et publication du chrono…");
+    try{const result=await publicApi('finish',{id:ticket.current,trace:trace.current});if(epoch.current===completed){saveGhost();setServerStatus(runCreator.current!==null?(result.ms<runCreator.current?`Défi relevé ! ${time(runCreator.current-result.ms)} de mieux que le créateur.`:result.ms===runCreator.current?"Égalité avec le créateur ! Encore un petit effort pour le dépasser.":`Chrono publié · encore ${time(result.ms-runCreator.current)} à gagner pour battre le créateur.`):`Chrono publié : ${time(result.ms)} · retrouve-le dans le classement public !`);}}
+    catch(e){if(epoch.current===completed){setRetrySend(true);setServerStatus(`Chrono non publié : ${e instanceof Error?e.message:"Service indisponible"}`);}}
+    finally{if(epoch.current===completed)setStarting(false);}
   }
   function draw(ctx:CanvasRenderingContext2D){
     const r=race.current;ctx.save();ctx.lineJoin="round";ctx.beginPath();
@@ -101,29 +135,33 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   if(!ready)return <div className="loading" role={error?"alert":"status"}>{error||"Préparation de ton île…"}{error&&<button onClick={()=>setRetry(n=>n+1)}>Réessayer</button>}</div>;
   const stars=Math.min(route.length,hud.next-1);
   return <section className="sparking" aria-label="Sparking Stars" inert={paused||undefined}>
-    <GameWorld trail={trail} cosmetic={cosmetic} key={`${friendId}-${selected}-${run}`} friendId={friendId} world={world} spawn={spawn} interactions={noInteractions} onInteract={()=>{}} focusRevision={used?1:0} paused={paused||shopping||choosing||modesOpen||boardOpen||!hud.running} equipment={comparison.equipment} movementScale={point=>race.current.countdown>0?0:(distanceToRoute(point,route)>terrain.width/2 ? Math.max(.38,.8-selected*.08):1)*(config.current.equipment==="kart"?1.45:config.current.equipment==="rollers"?1.2:1)*(config.current.boost>0?1.6:1)} reducedMotion={reduced} onStep={step} drawTrack={draw}/>
-    <header className="hud"><div><small>GEN {terrain.gen} · TIER {profile?.tier} · {terrain.name.toUpperCase()}</small><h1>Sparking Stars <span>✦</span></h1></div><div className="score"><b data-testid="stars">★ {stars}/{route.length}</b><strong data-testid="timer">{time(hud.elapsed)}</strong><small>Record {comparison.mode==="training"?"entraînement":"libre"} {best===null?"—":time(best)}</small></div></header>
-    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&!hud.running&&<div className={`race-card ${hud.done?"finished":""}`} role="status"><small>{hud.done?"TOUR TERMINÉ !":mode==="training"?"ENTRAÎNEMENT · ILLIMITÉ":"COURSE LIBRE"}</small><h2>{hud.done?"Bien joué, petite étoile ✦":"À tes marques !"}</h2><p>{hud.done?`${route.length} étoiles · ${time(hud.elapsed)}`:terrain.subtitle}</p>{prize&&<>{personalBest&&<div className="record-ribbon">{personalBest}</div>}<div className="medal-emblem" aria-hidden="true">{prize.medal==="Or"?"✦":prize.medal==="Argent"?"◇":"○"}</div><p className="prize" data-testid="prize">{prize.medal} · {comparison.mode==="training"?"Entraînement sans récompense":`+${prize.coins} pièces de test`}</p><p className="finish-tip">{prize.medal==="Or"?"Objectif Or atteint ! À toi de battre ton record.":`Encore ${time(Math.max(0,hud.elapsed-(prize.medal==="Argent"?targets.gold:targets.silver)*1000))} à gagner pour ${prize.medal==="Argent"?"l’Or":"l’Argent"}.`}</p></>}<small>{labels[comparison.equipment]} · {comparison.tier>=1?"1 étoile offerte":"Toutes les étoiles"}</small><div className="medal-targets"><span>✦ Or ≤ {time(targets.gold*1000)}</span><span>◇ Argent ≤ {time(targets.silver*1000)}</span></div><button disabled={paused} onClick={start}>{hud.done?"Rejouer":"C’est parti !"}</button></div>}
-    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&hud.running&&<div className="race-status"><span aria-live="polite">{hud.next===route.length?"Dernière étoile : retourne à l’arrivée !":`Direction l’étoile ${hud.next} →`}</span><button disabled={paused} onClick={start}>Recommencer</button></div>}
-    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&hud.running&&<><div className="race-progress" aria-label="Progression du circuit"><div style={{width:`${100*stars/route.length}%`}}/></div><div className="pace-label">{hud.countdown>0?"Prépare-toi…":offroad?"HORS-PISTE · tu ralentis":hud.elapsed<=targets.gold*1000?`Objectif Or · ${time(Math.max(0,targets.gold*1000-hud.elapsed))}`:hud.elapsed<=targets.silver*1000?`Objectif Argent · ${time(Math.max(0,targets.silver*1000-hud.elapsed))}`:"Finis le tour pour décrocher le Bronze"}</div></>}
-    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&hud.running&&hud.countdown>0&&<div className="countdown" role="status" aria-live="polite"><small>À TES MARQUES</small><strong>{Math.ceil(hud.countdown/1000)}</strong><span>{labels[config.current.equipment]} · GEN {terrain.gen}</span></div>}
-    <button className="board-switch" disabled={paused||hud.running} onClick={()=>{setShopping(false);setChoosing(false);setModesOpen(false);setBoardOpen(true);}}>Chronos</button>
-    {boardOpen&&<Leaderboard laps={laps} gen={terrain.gen} equipment={comparison.equipment} mode={comparison.mode} tier={comparison.tier} bonus={comparison.bonus as Bonus} onClose={()=>setBoardOpen(false)}/>}
-    <button className="mode-switch" disabled={paused||hud.running} onClick={()=>{setBoardOpen(false);setShopping(false);setChoosing(false);setModesOpen(true);}}>Modes</button>
+    <GameWorld preloadWorld={terrain.world} ghost={()=>ghostEnabled&&race.current.running&&race.current.countdown===0?sampleGhost(runGhost.current,race.current.elapsed):null} trail={trail} cosmetic={cosmetic} key={`${friendId}-${selected}-${run}`} friendId={friendId} world={world} spawn={spawn} interactions={noInteractions} onInteract={()=>{}} focusRevision={used?1:0} paused={paused||shopping||choosing||modesOpen||boardOpen||publicOpen||!hud.running} equipment={comparison.equipment} movementScale={point=>race.current.countdown>0?0:(distanceToRoute(point,route)>terrain.width/2 ? Math.max(.38,.8-(terrain.level-1)*.08):1)*(config.current.equipment==="kart"?1.45:config.current.equipment==="rollers"?1.2:1)*(config.current.boost>0?1.6:1)} reducedMotion={reduced} onStep={step} drawTrack={draw}/>
+    <header className="hud"><div><small>GEN {terrain.gen} · TIER {profile?.tier} · {terrain.name.toUpperCase()}</small><h1>Sparking Stars <span>✦</span></h1></div><div className="score"><b data-testid="stars">★ {stars}/{route.length}</b><strong data-testid="timer">{time(hud.elapsed)}</strong><small>Record {comparison.mode==="ranked"?"compétition":comparison.mode==="training"?"entraînement":"libre"} {best===null?"—":time(best)}</small></div></header>
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&!publicOpen&&!hud.running&&<div className={`race-card ${hud.done?"finished":""}`} role="status"><small>{hud.done?"TOUR TERMINÉ !":mode==="ranked"?"COMPÉTITION · BÊTA":mode==="training"?"ENTRAÎNEMENT · ILLIMITÉ":"COURSE LIBRE"}</small><h2>{hud.done?"Bien joué, petite étoile ✦":"À tes marques !"}</h2><p>{hud.done?`${route.length} étoiles · ${time(hud.elapsed)}`:terrain.subtitle}</p>{prize&&<>{personalBest&&<div className="record-ribbon">{personalBest}</div>}<div className="medal-emblem" aria-hidden="true">{prize.medal==="Or"?"✦":prize.medal==="Argent"?"◇":"○"}</div><p className="prize" data-testid="prize">{prize.medal} · {comparison.mode==="ranked"?"Course classée · sans gain RF":comparison.mode==="training"?"Entraînement sans récompense":`+${prize.coins} pièces de test`}</p><p className="finish-tip">{prize.medal==="Or"?"Objectif Or atteint ! À toi de battre ton record.":`Encore ${time(Math.max(0,hud.elapsed-(prize.medal==="Argent"?targets.gold:targets.silver)*1000))} à gagner pour ${prize.medal==="Argent"?"l’Or":"l’Argent"}.`}</p></>}<small>{labels[comparison.equipment]} · {comparison.tier>=1?"1 étoile offerte":"Toutes les étoiles"}</small><div className="medal-targets"><span>✦ Or ≤ {time(targets.gold*1000)}</span><span>◇ Argent ≤ {time(targets.silver*1000)}</span></div><p className="server-status" role="status">{serverStatus}</p>{retrySend&&<button disabled={starting} onClick={()=>void publish()}>Réessayer l’envoi</button>}{mode!=="free"&&<small className="ghost-reference">{!ghostEnabled?"Fantôme masqué · réglage dans Modes":ghosts.current[ghostId(mode,trainingEquipment)]?`Fantôme personnel · ${time(ghosts.current[ghostId(mode,trainingEquipment)].ms)}`:"Ton premier tour terminé créera ton fantôme."}</small>}<button disabled={paused||starting} onClick={start}>{hud.done?"Rejouer":"C’est parti !"}</button></div>}
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&!publicOpen&&hud.running&&<div className="race-status"><span aria-live="polite">{hud.next===route.length?"Dernière étoile : retourne à l’arrivée !":`Direction l’étoile ${hud.next} →`}</span><p className="server-status" role="status">{serverStatus}</p>{retrySend&&<button disabled={starting} onClick={()=>void publish()}>Réessayer l’envoi</button>}<button disabled={paused||starting} onClick={start}>Recommencer</button></div>}
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&!publicOpen&&hud.running&&<><div className="race-progress" aria-label="Progression du circuit"><div style={{width:`${100*stars/route.length}%`}}/></div><div className="pace-label">{hud.countdown>0?"Prépare-toi…":offroad?"HORS-PISTE · tu ralentis":hud.elapsed<=targets.gold*1000?`Objectif Or · ${time(Math.max(0,targets.gold*1000-hud.elapsed))}`:hud.elapsed<=targets.silver*1000?`Objectif Argent · ${time(Math.max(0,targets.silver*1000-hud.elapsed))}`:"Finis le tour pour décrocher le Bronze"}</div></>}
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&!publicOpen&&hud.running&&hud.countdown>0&&<div className="countdown" role="status" aria-live="polite"><small>À TES MARQUES</small><strong>{Math.ceil(hud.countdown/1000)}</strong><span>{labels[config.current.equipment]} · GEN {terrain.gen}</span></div>}
+    {!hud.running&&!shopping&&!choosing&&!modesOpen&&!boardOpen&&!publicOpen&&<button className="creator-switch" disabled={paused||starting} onClick={()=>setModesOpen(true)}>Le défi du créateur ↗</button>}
+    <button className="board-switch" disabled={paused||hud.running||starting} onClick={()=>{setShopping(false);setChoosing(false);setModesOpen(false);setPublicOpen(false);setBoardOpen(true);}}>Chronos</button>
+    {boardOpen&&<Leaderboard onPublic={()=>{setBoardOpen(false);setPublicOpen(true);}} laps={laps} gen={terrain.gen} equipment={comparison.equipment} mode={comparison.mode==="ranked"?"training":comparison.mode} tier={comparison.tier} bonus={comparison.bonus as Bonus} onClose={()=>setBoardOpen(false)}/>}
+    {publicOpen&&<PublicBoard gen={terrain.gen} equipment={comparison.equipment} onClose={()=>setPublicOpen(false)}/>}
+    <button className="mode-switch" disabled={paused||hud.running||starting} onClick={()=>{setPublicOpen(false);setBoardOpen(false);setShopping(false);setChoosing(false);setModesOpen(true);}}>Modes</button>
     {modesOpen&&<div className="mode-panel" role="dialog" aria-label="Modes de course"><div className="picker-heading"><div><small>LE PADDOCK</small><h2>Choisis ta course</h2></div><button onClick={()=>setModesOpen(false)}>Fermer</button></div>
+      <CreatorChallenge gen={terrain.gen} onChoose={ms=>{setCreatorTarget(ms);setMode("ranked");setTrainingEquipment("feet");race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);setServerStatus(`Défi du créateur · bats ${time(ms)} à pied.`);setModesOpen(false);}}/>
       <div className="mode-grid">
-        <button aria-pressed={mode==="training"} onClick={()=>{setMode("training");race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}><strong>Entraînement</strong><span>Départs illimités · aucune énergie dépensée</span><span>Toutes les étoiles, sans consommable ni gain de pièces. Record personnel par équipement.</span></button>
-        <button aria-pressed={mode==="free"} onClick={()=>{setMode("free");race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}><strong>Course libre</strong><span>Pièces de test selon ton chrono</span><span>Avantages du tier et bonus équipés. Rollers et kart : 3 départs par session chacun.</span></button>
-        <div className="upcoming"><strong>Compétition · à venir</strong><p>Classements par GEN et équipement, capacités égales, défis quotidiens. Aucun classement en ligne pour le moment.</p></div>
+        <button aria-pressed={mode==="training"} onClick={()=>{setCreatorTarget(null);setMode("training");race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}><strong>Entraînement</strong><span>Départs illimités · aucune énergie dépensée</span><span>Toutes les étoiles, sans consommable ni gain de pièces. Record personnel par équipement.</span></button>
+        <button aria-pressed={mode==="free"} onClick={()=>{setCreatorTarget(null);setMode("free");race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}><strong>Course libre</strong><span>Pièces de test selon ton chrono</span><span>Avantages du tier et bonus équipés. Rollers et kart : 3 départs par session chacun.</span></button>
+        <button aria-pressed={mode==="ranked"} onClick={()=>{setCreatorTarget(null);setMode("ranked");race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);setServerStatus("");}}><strong>Compétition · bêta</strong><span>Classement public quotidien, hebdomadaire et mensuel</span><span>Toutes les étoiles, aucun bonus ni étoile offerte. Signature gratuite au premier départ. Aucun gain RF.</span></button>
       </div>
-      {mode==="training"&&<><h3>Ton équipement d’entraînement</h3><div className="loadout">{(["feet","rollers","kart"] as Equipment[]).map(e=><button key={e} disabled={!wallet.owned.includes(e)} aria-pressed={trainingEquipment===e} onClick={()=>{setTrainingEquipment(e);race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}>{labels[e]}{wallet.owned.includes(e)?" · illimité":" · à acheter"}</button>)}</div><p>Les équipements de ton garage restent utilisables ici, même sans énergie.</p></>}
-      <p className="shop-note">Records conservés pendant cette session seulement. Le fantôme personnel arrive dans une prochaine étape.</p><button onClick={()=>setModesOpen(false)}>Retour à la piste</button>
+      {mode!=="free"&&<><h3>Ton équipement d’entraînement</h3><div className="loadout">{(["feet","rollers","kart"] as Equipment[]).map(e=><button key={e} disabled={mode==="ranked"?(e==="rollers"?wallet.tier<2:e==="kart"?wallet.tier<4:false):!wallet.owned.includes(e)} aria-pressed={trainingEquipment===e} onClick={()=>{setTrainingEquipment(e);race.current=fresh();setHud(fresh());setPrize(null);setPersonalBest(null);}}>{labels[e]}{mode==="ranked"?(e==="feet"?"":e==="rollers"?" · tier 2+":" · tier 4"):wallet.owned.includes(e)?" · illimité":" · à acheter"}</button>)}</div><p>Les équipements de ton garage restent utilisables ici, même sans énergie.</p></>}
+      <label className="ghost-option"><input type="checkbox" checked={ghostEnabled} onChange={e=>setGhostEnabled(e.target.checked)}/> Afficher le fantôme de mon meilleur tour</label><p className="shop-note">En entraînement et compétition, par GEN et équipement. Fantôme conservé pendant cette session, sans collision. En compétition, seuls les tours acceptés sont enregistrés. Masqué par défaut avec la réduction des animations.</p>
+      <p className="shop-note">Les courses classées acceptées sont enregistrées en ligne. Entraînement et course libre restent propres à cette session.</p><button onClick={()=>{setModesOpen(false);setPublicOpen(true);}}>Classement public</button><button onClick={()=>setModesOpen(false)}>Retour à la piste</button>
     </div>}
-    <button className="shop-switch" disabled={paused||hud.running} onClick={()=>{setBoardOpen(false);setModesOpen(false);setChoosing(false);setShopMessage("");setShopping(true);}}>Boutique · {wallet.coins} ◇</button>
+    <button className="shop-switch" disabled={paused||hud.running||starting} onClick={()=>{setPublicOpen(false);setBoardOpen(false);setModesOpen(false);setChoosing(false);setShopMessage("");setShopping(true);}}>Boutique · {wallet.coins} ◇</button>
     {shopping&&<Shop friendId={friendId} trail={trail} onTrail={id=>{if(!paused)setTrail(id);}} cosmetic={cosmetic} onCosmetic={id=>{if(!paused)setCosmetic(id);}} wallet={wallet} message={shopMessage} act={a=>{if(!paused)act(a);}} onClose={()=>setShopping(false)}/>}
-    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&hud.running&&<div className="bonus-bar"><span>{labels[config.current.equipment]}{config.current.boost>0?" · BOOST !":""}</span><button disabled={paused||hud.countdown>0||used||config.current.bonus==="none"||(config.current.bonus==="breaker"&&!nearWall)} onClick={useBonus}>{used?"Bonus utilisé":config.current.bonus==="none"?"Aucun bonus":`${labels[config.current.bonus]} · Espace`}</button></div>}
-    <button className="terrain-switch" disabled={paused} onClick={()=>{race.current=fresh();setHud(fresh());setBoardOpen(false);setModesOpen(false);setShopping(false);setChoosing(true);}}>Les 6 terrains</button>
+    {!shopping&&!choosing&&!modesOpen&&!boardOpen&&!publicOpen&&hud.running&&<div className="bonus-bar"><span>{labels[config.current.equipment]}{config.current.boost>0?" · BOOST !":""}</span><button disabled={paused||hud.countdown>0||used||config.current.bonus==="none"||(config.current.bonus==="breaker"&&!nearWall)} onClick={useBonus}>{used?"Bonus utilisé":config.current.bonus==="none"?"Aucun bonus":`${labels[config.current.bonus]} · Espace`}</button></div>}
+    <button className="terrain-switch" disabled={paused||starting} onClick={()=>{epoch.current++;setPublicOpen(false);race.current=fresh();setHud(fresh());setBoardOpen(false);setModesOpen(false);setShopping(false);setChoosing(true);}}>Les 6 terrains</button>
     {choosing&&<div className="terrain-picker" role="dialog" aria-label="Choisir un terrain"><div className="picker-heading"><div><small>SPARKING STARS · EXPLORATION</small><h2>Six îles. Six défis.</h2></div><button onClick={()=>setChoosing(false)}>Fermer</button></div><p>Ton terrain correspond à la GEN officielle de ton Friend. Les autres îles restent visibles en aperçu.</p><div className="terrain-grid">{terrains.map((t,i)=><button key={t.gen} disabled={t.gen!==profile?.generation} aria-pressed={selected===i} onClick={()=>{if(paused||t.gen!==profile?.generation)return;setSelected(i);race.current=fresh();setHud(fresh());setRun(n=>n+1);setChoosing(false);}}><small>GEN {t.gen} · {t.difficulty}</small><svg viewBox="0 0 576 384" aria-hidden="true"><polygon points={t.shape.map(p=>p.join(",")).join(" ")} fill="white" stroke="black" strokeWidth="8"/><polyline points={[...t.route,t.route[0]].map(p=>p.join(",")).join(" ")} fill="none" stroke="black" strokeWidth="10"/>{t.holes.map((h,j)=><rect key={j} x={h[0]} y={h[1]} width={h[2]} height={h[3]} fill="black"/>)}</svg><strong>{t.name}</strong><span>{t.route.length} étoiles · {t.gen!==profile?.generation?`Friend GEN ${t.gen} requis`:Object.keys(records).some(k=>k.startsWith(`${i}-`))?"Record enregistré":"À découvrir"}</span></button>)}</div></div>}
-    <footer className="hint">Flèches / ZQSD / WASD · Clique ou touche le sol pour marcher<small>Hors-piste = ralenti · {mode==="training"?"Entraînement sans récompense":"Course libre · pièces de test"} · Session non sauvegardée</small></footer>
+    <footer className="hint">Flèches / ZQSD / WASD · Clique ou touche le sol pour marcher<small>Hors-piste = ralenti · {mode==="ranked"?"Compétition bêta · sans gain RF":mode==="training"?"Entraînement sans récompense":"Course libre · pièces de test"} · Collection Constellations sauvegardée</small></footer>
   </section>;
 }
