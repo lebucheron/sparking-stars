@@ -8,6 +8,7 @@ import type {FriendWalletProvider} from '@rarefriends/friendsdk/wallet';
 import '@rarefriends/friendsdk/frame.css';
 import '@rarefriends/friendsdk/runtime.css';
 import '../games/sparking-stars/host.css';
+import {MobileWalletHelp} from './mobile-wallet-help';
 import {DemoRecorder} from './demo-recorder';
 import definitionJson from '../games/sparking-stars/game.json';
 const definition=parseChanceGame(definitionJson);
@@ -72,6 +73,7 @@ function App(){
  }
  return <section className="paddock-window" aria-label="Sparking Stars — le paddock">
   <header className="paddock-titlebar"><div className="paddock-brand"><span className="paddock-mark" aria-hidden="true">✦</span><div><strong>SPARKING STARS</strong><small>RARE FRIENDS · RACE CLUB</small></div></div><div className="paddock-window-actions"><DemoRecorder/><span className="season-tag">01 / CONSTELLATIONS</span><button className="cinema-button" onClick={()=>void fullscreen()} aria-pressed={cinema}>{cinema?"Quitter le plein écran":"Mode cinéma ↗"}</button></div></header>
+  <MobileWalletHelp/>
   <aside className="paddock-connection" aria-label="Connexion au classement"><span className="connection-note" role="status">{notice}</span><button disabled={working} onClick={login}>Activer le classement</button></aside>
   <div className="paddock-stage"><GameHost definition={definition} frameUrl="./game.html" walletProvider={provider}/></div>
   <footer className="paddock-footer"><span>6 ÎLES / UN CHRONO À BATTRE</span><span className="footer-checks" aria-hidden="true"/><span>BÊTA · 100 % MONOCHROME</span></footer>
