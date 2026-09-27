@@ -24,6 +24,7 @@ for(const width of [1000,390]){
    await route.fulfill({json:data,headers:{'access-control-allow-origin':'*'}});
   });
  },check:async({page,game})=>{
+  assert.equal(await page.getByRole('button',{name:'Activer le classement',exact:true}).isVisible(),false);
   // A test-only signature stub; no production wallet or key is used.
   await page.evaluate(()=>{const original=window.ethereum.request.bind(window.ethereum);window.ethereum.request=async args=>args.method==='personal_sign'?'0x'+'1'.repeat(130):original(args);});
   await game.getByRole('button',{name:'Modes',exact:true}).click();
@@ -32,7 +33,7 @@ for(const width of [1000,390]){
   await game.getByRole('button',{name:'C’est parti !',exact:true}).click();
   await game.getByText(/Clique « Activer le classement »/).waitFor();
   await page.getByRole('button',{name:'Activer le classement',exact:true}).click();
-  await page.getByText(/Classement activé pour une heure/).waitFor();
+  await page.getByRole('button',{name:'Activer le classement',exact:true}).waitFor({state:'hidden'});
   await game.getByRole('button',{name:'C’est parti !',exact:true}).click();
   await game.locator('.countdown').waitFor({state:'hidden'});
   const canvas=game.locator('canvas[data-x]'),route=terrains[2].route;

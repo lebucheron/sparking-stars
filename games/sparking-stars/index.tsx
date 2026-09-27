@@ -47,6 +47,7 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   const terrain=terrains[selected], route=terrain.route, spawn=route[0];
   const [wallet,setWallet]=useState(initialWallet), walletRef=useRef(initialWallet());
   const [shopping,setShopping]=useState(false),[shopMessage,setShopMessage]=useState("");
+  useEffect(()=>{void publicApi("context",{needed:mode==="ranked"||shopping}).catch(()=>{});},[mode,shopping]);
   const [broken,setBroken]=useState(false),[nearWall,setNearWall]=useState(false),[used,setUsed]=useState(false);
   const [prize,setPrize]=useState<{medal:string;coins:number}|null>(null);
   const config=useRef({mode:"training" as Mode,equipment:"feet" as Equipment,bonus:"none" as Bonus,tier:0,id:0,used:false,boost:0,gifted:false});

@@ -18,6 +18,7 @@ export function Season({friendId,onCosmetic,onTrail}:{friendId:bigint;onCosmetic
   finally{if(v===version.current)setBusy(false);}
  }
  useEffect(()=>{version.current++;setState(null);void update();return()=>{version.current++;};},[friendId]);
+ useEffect(()=>{const ready=(e:MessageEvent)=>{if(e.source===window.parent&&e.data?.type==='sparking-session-ready')void update();};window.addEventListener('message',ready);return()=>window.removeEventListener('message',ready);},[friendId,busy]);
  return <section className="season" aria-label="Saison Constellations"><header><small>MINI-SAISON 01 · PASS GRATUIT</small><h3>CONSTELLATIONS ✦</h3><p>Du 26 septembre au 23 octobre 2026 inclus (UTC).</p></header>
  <p>Les étoiles de la piste mesurent ta course. Les <strong>étoiles de style</strong> habillent ton Friend : 10 pour chacune des 3 premières courses classées acceptées du jour.</p>
  <div className="season-balance"><strong>{state?`${state.balance} ✦ étoiles de style`:'Ta collection sauvegardée'}</strong><button disabled={busy} onClick={()=>void update()}>Actualiser la collection</button></div>

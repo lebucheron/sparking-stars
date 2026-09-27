@@ -169,3 +169,21 @@ pas présentées comme ses courses. Scénario conseillé : défi, course avec fa
 classement, collection et retour à l’île.
 
 Les circuits sont inversés intégralement : GEN 1 Citadelle, 2 Fabrique, 3 Ruines, 4 Canaux, 5 Carrière, 6 Jardin. Chaque circuit conserve obstacles, tracé, ralentissement hors-piste et objectifs. La génération du NFT sélectionne toujours son terrain. Nouvelle version des règles : anciens chronos conservés hors du nouveau classement, collection inchangée. Le défi du créateur attend une nouvelle référence GEN 3 valide.
+
+## Chrome mobile et connexion à la demande
+Le host public utilise MetaMask Connect EVM 2.1.1 lorsqu’aucun provider injecté
+n’est présent. Le bouton de connexion FriendSDK initialise le relais MetaMask
+sur Robinhood. Sélection du Friend et signature du classement partagent ce provider.
+Le jeu reste dans Chrome ; MetaMask sert aux autorisations et à personal_sign.
+Le retour automatique dépend du navigateur et de l’application : revenir à l’onglet
+Chrome si Android ne le ramène pas automatiquement. Aucun lien /dapp/ ne déplace
+le jeu dans le navigateur MetaMask. Le parcours Android complet reste à confirmer
+par le joueur ; les tests automatisés ne remplacent pas cette validation réelle.
+La barre de signature est cachée au lancement, à la lecture du classement public,
+après connexion et au retour à l’entraînement. Elle apparaît sur demande de course
+classée ou de collection sauvegardée, avec possibilité de la fermer.
+Tests : test-wallet-relay.mjs, test-auth-on-demand.mjs, test-public-browser.mjs,
+test-season-browser.mjs, test-presentation.mjs dans server/.
+Audit npm : dépendance transitive uuid signalée modérée (GHSA-w5hq-g745-h8pq),
+sans correctif proposé par npm pour la chaîne MetaMask actuelle. Aucune utilisation
+directe de ses fonctions v3/v5/v6 avec buffer dans notre adaptateur.
