@@ -7,9 +7,9 @@ for(const [width,height] of [[1440,1000],[1366,768],[390,844]])await testGame('g
  const bounds=await page.locator('.paddock-window').boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width+1);assert(bounds.y+bounds.height<=height+2,'window fits viewport');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  if(width>600){
-  assert(await page.getByRole('button',{name:'Mode cinéma ↗'}).isVisible());
-  await page.getByRole('button',{name:'Mode cinéma ↗'}).click();await page.getByRole('button',{name:'Quitter le plein écran'}).waitFor();assert(await page.evaluate(()=>Boolean(document.fullscreenElement)));await page.getByRole('button',{name:'Quitter le plein écran'}).click();
- }else assert.equal(await page.getByRole('button',{name:'Mode cinéma ↗'}).isVisible(),false);
+  assert(await page.getByRole('button',{name:'Agrandir la course'}).isVisible());
+  await page.getByRole('button',{name:'Agrandir la course'}).click();await page.getByRole('button',{name:'Quitter la vue course'}).waitFor();assert(await page.evaluate(()=>Boolean(document.fullscreenElement)));await page.getByRole('button',{name:'Quitter la vue course'}).click();
+ }else assert.equal(await page.getByRole('button',{name:'Agrandir la course'}).isVisible(),true);
  await page.screenshot({path:`artifacts/paddock-${width}.png`});
  await game.getByRole('button',{name:'Modes',exact:true}).click();await game.getByRole('button',{name:'Retour à la piste',exact:true}).scrollIntoViewIfNeeded();await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();
  await game.getByRole('button',{name:'C’est parti !',exact:true}).click();await game.locator('.countdown').waitFor({state:'hidden'});
