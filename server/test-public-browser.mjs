@@ -31,9 +31,14 @@ for(const width of [1000,390]){
   await game.getByRole('button',{name:/^Compétition · bêta/}).click();
   await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();
   await game.getByRole('button',{name:'C’est parti !',exact:true}).click();
-  await game.getByText(/Clique « Activer le classement »/).waitFor();
+  await game.getByText(/Active le classement dans la fenêtre/).waitFor();
+  const dialog=page.getByRole('dialog',{name:'Connexion au classement'});await dialog.waitFor();
+  const bounds=await dialog.boundingBox();assert(bounds&&bounds.y>=0&&bounds.x>=0&&bounds.x+bounds.width<=width,'Login stays visible inside viewport');
+  assert.equal(await game.locator('.countdown').count(),0);
   await page.getByRole('button',{name:'Activer le classement',exact:true}).click();
   await page.getByRole('button',{name:'Activer le classement',exact:true}).waitFor({state:'hidden'});
+  await game.getByText(/Classement activé · clique/).waitFor();
+  assert.equal(await game.locator('.countdown').count(),0,'Signing must not start the countdown');
   await game.getByRole('button',{name:'C’est parti !',exact:true}).click();
   await game.locator('.countdown').waitFor({state:'hidden'});
   const canvas=game.locator('canvas[data-x]'),route=terrains[2].route;

@@ -6,7 +6,7 @@ await testGame('games/sparking-stars',{publicHost:true,profile:{generation:3,tie
 },check:async({page,game})=>{
  const auth=page.getByRole('button',{name:'Activer le classement',exact:true});assert.equal(await auth.isVisible(),false);
  await game.getByRole('button',{name:'Chronos',exact:true}).click();await game.getByRole('button',{name:'Voir le classement public ↗',exact:true}).click();assert.equal(await auth.isVisible(),false);await game.getByRole('button',{name:'Retour',exact:true}).click();
- await game.getByRole('button',{name:/Boutique ·/}).click();await auth.waitFor();await page.getByRole('button',{name:'Fermer la demande de connexion'}).click();assert.equal(await auth.isVisible(),false);
- await game.getByRole('button',{name:'Actualiser la collection',exact:true}).click();await auth.waitFor();await game.getByRole('button',{name:'Retour au circuit',exact:true}).click();await auth.waitFor({state:'hidden'});
+ await game.getByRole('button',{name:/Boutique ·/}).click();await auth.waitFor();await page.screenshot({path:'../../outputs/depart-connexion-mobile.png'});await page.getByRole('button',{name:'Fermer la demande de connexion'}).click();assert.equal(await auth.isVisible(),false);
+ await game.getByRole('button',{name:'Actualiser la collection',exact:true}).click();await auth.waitFor();await page.getByRole('button',{name:'Fermer la demande de connexion'}).click();await game.getByRole('button',{name:'Retour au circuit',exact:true}).click();await auth.waitFor({state:'hidden'});
  console.log('Auth only on demand: no banner on training or public board, wardrobe request, dismiss/retry, hidden on return to training.');
 }});
