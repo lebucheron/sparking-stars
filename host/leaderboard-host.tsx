@@ -10,6 +10,7 @@ import '@rarefriends/friendsdk/runtime.css';
 import '../games/sparking-stars/host.css';
 import {walletProvider as provider,injected} from './wallet-provider';
 import {DemoRecorder} from './demo-recorder';
+import {questStore} from './quest-store';
 import {personalGhostStore} from './ghost-store';
 import {RULES} from '../games/sparking-stars/rules-version';
 import definitionJson from '../games/sparking-stars/game.json';
@@ -48,11 +49,20 @@ function App(){
    if(!frame||e.source!==frame.contentWindow||e.data?.type!=='sparking-public-v1'||e.ports.length!==1)return;
    const port=e.ports[0],r=revision,{action,payload}=e.data;
    try{
-    if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator','ghost'].includes(action))throw new Error('Action refusée.');
+    if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator','ghost','quests'].includes(action))throw new Error('Action refusée.');
     if(action==='context'){if(payload.needed===false)setAuthNeeded(false);port.postMessage({ok:true});return;}
     if(action==='prepare'){
      if(typeof payload.friendId!=='string'||!/^[1-9][0-9]{0,77}$/.test(payload.friendId))throw new Error('Friend incorrect.');
      if(friendId!==payload.friendId){clear();setAuthNeeded(false);friendId=payload.friendId;setNotice('Classement bêta · signature gratuite pour publier tes courses.');}setHasFriend(true);port.postMessage({ready:true});return;
+    }
+    if(action==='quests'){
+     if(payload.friendId!==friendId||payload.rules!==RULES)throw new Error('Le pilote ou le circuit a changé.');
+     const wallet=await account();if(r!==revision||frame!==document.querySelector('iframe'))throw new Error('Le pilote a changé.');
+     const storage=(()=>{try{return window.localStorage;}catch{return {getItem:()=>null,setItem:()=>{throw Error('Storage blocked');}};}})();
+     const store=questStore(storage,wallet,friendId,RULES);
+     if(payload.operation==='read')port.postMessage({categories:store.read()});
+     else if(payload.operation==='complete')port.postMessage(store.complete(payload.gen,payload.mode,payload.equipment,payload.controls,payload.ghost,payload.id));
+     else throw Error('Action de quête refusée.');return;
     }
     if(action==='ghost'){
      if(payload.friendId!==friendId||payload.rules!==RULES)throw new Error('Le pilote ou le circuit a changé.');

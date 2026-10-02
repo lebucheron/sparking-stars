@@ -48,6 +48,7 @@ for(const width of [1000,390]){
    await game.getByTestId('stars').filter({hasText:`★ ${i}/${route.length}`}).waitFor();
   }
   try{await game.getByText(/Chrono publié :/).waitFor();}catch(e){console.log('FINISH UI',await game.locator('.race-card').innerText());throw e;}assert.equal(finishes,1);
+  await game.getByTestId('quest-notice').filter({hasText:'Première empreinte'}).waitFor();
   await game.getByRole('button',{name:'Chronos',exact:true}).click();
   await game.getByRole('button',{name:'Voir le classement public ↗',exact:true}).click();
   await game.getByRole('cell',{name:'Friend #7730',exact:true}).waitFor();

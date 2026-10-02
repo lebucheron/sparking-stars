@@ -88,3 +88,5 @@
 .race-focus .bonus-bar{bottom:55px;left:auto;right:8px;width:125px;height:44px}.race-focus .bonus-bar>span{display:none}
 .race-focus .pace-label{top:auto;bottom:102px}.race-focus .click-feedback{display:none}
 .race-focus .race-card,.race-focus .race-card.finished{top:80px;max-height:calc(100% - 145px);overflow:auto}
+
+.quest-panel{z-index:8}.quest-panel>p,.quest-panel article p{font:12px/1.5 Arial,sans-serif}.quest-panel article{border:2px solid #000;margin:12px 0;padding:12px}.quest-panel article h3{margin:0 0 8px}.quest-panel article strong{display:block;font-size:12px}.quest-panel article button{margin-top:10px;min-height:44px}

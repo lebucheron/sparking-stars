@@ -203,3 +203,33 @@ test-season-browser.mjs, test-presentation.mjs dans server/.
 Audit npm : dépendance transitive uuid signalée modérée (GHSA-w5hq-g745-h8pq),
 sans correctif proposé par npm pour la chaîne MetaMask actuelle. Aucune utilisation
 directe de ses fonctions v3/v5/v6 avec buffer dans notre adaptateur.
+
+## Quêtes personnelles
+
+Ouvrir Modes → Quêtes, ou Voir mes quêtes après un tour. Première empreinte
+récompense le premier tour, Étoile régulière trois tours, et Chasseur de fantômes
+la première amélioration du meilleur fantôme. Ces badges sont personnels, sans RF,
+monnaie, équipement ou avantage compétitif. Les anciens chronos ne deviennent pas
+des tours accomplis rétroactivement ; le meilleur fantôme existant reste cependant
+la référence de l'exploit d'amélioration.
+
+Le défi renouvelable attend cinq tours terminés, puis choisit la trajectoire du
+temps médian des cinq derniers tours. Sa cible reste figée : un tour plus lent
+ne la change pas. Battre cette cible OU terminer trois tours dans la marge de 3 %
+au-dessus de son temps valide le défi. Les trois tours proches ne doivent pas être
+consécutifs. Une réussite sélectionne la nouvelle médiane des cinq derniers tours
+pour le défi suivant. Le bouton du carnet permet de rejouer cette trajectoire ou
+de revenir au meilleur fantôme personnel.
+
+Seuls les tours terminés en entraînement et les tours acceptés en compétition
+comptent ; jamais les courses libres, abandons ou publications refusées. Chaque
+Friend/GEN/mode/équipement/règles/commandes a sa progression distincte. Un passage
+à la souris utilise la catégorie clavier/souris. La sauvegarde locale dans le
+parent de confiance est isolée par wallet et Friend, limitée à 2 Mo, et valide les
+parcours et catégories. En cas de stockage bloqué, la progression reste disponible
+pendant la session. Les trajectoires récentes sont espacées d'environ 250 ms pour
+limiter leur taille. Les quêtes locales ne constituent pas une preuve pour accorder
+une récompense serveur. Aucun serveur ou contrat supplémentaire n'est déployé.
+
+Tests : server/test-quests.mjs et server/test-quests-browser.mjs, plus le parcours
+classé dans server/test-public-browser.mjs.

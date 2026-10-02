@@ -3,7 +3,7 @@ import {makeGhost,betterGhost,ghostKey,type Ghost} from '../games/sparking-stars
 type StoragePort=Pick<Storage,'getItem'|'setItem'>;
 const MAX_BYTES=2_000_000;
 const category=(gen:unknown,mode:unknown,equipment:unknown)=>Number.isInteger(gen)&&Number(gen)>=1&&Number(gen)<=6&&['training','ranked'].includes(String(mode))&&['feet','rollers','kart'].includes(String(equipment));
-function validate(value:unknown):Ghost|null {
+export function validateGhost(value:unknown):Ghost|null {
  if(!value||typeof value!=='object')return null;
  const g=value as Ghost;
  if(!Array.isArray(g.points)||g.points.length>40000||g.points.some(p=>!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)||p[1]<0||p[1]>576||p[2]<0||p[2]>384))return null;
@@ -22,7 +22,7 @@ export function personalGhostStore(storage:StoragePort,wallet:string,friend:stri
     if(key.split(':').length!==6)continue;
     const [id,gen,mode,gear,version,controls]=key.split(':');
     if(id!==friend||version!==rules||!category(Number(gen),mode,gear)||!['touch','desktop'].includes(controls))continue;
-    const ghost=validate(value);if(ghost)result[key]=ghost;
+    const ghost=validateGhost(value);if(ghost)result[key]=ghost;
    }
   }catch{/* Missing, blocked or damaged browser storage never blocks a race. */}
   return result;
@@ -30,7 +30,7 @@ export function personalGhostStore(storage:StoragePort,wallet:string,friend:stri
  function save(gen:unknown,mode:unknown,equipment:unknown,value:unknown,controls:unknown){
   if(!['touch','desktop'].includes(String(controls)))throw new Error('Commandes incorrectes.');
   if(!category(gen,mode,equipment))throw new Error('Catégorie de fantôme incorrecte.');
-  const ghost=validate(value);if(!ghost)throw new Error('Parcours de fantôme incorrect.');
+  const ghost=validateGhost(value);if(!ghost)throw new Error('Parcours de fantôme incorrect.');
   const records=read(),key=ghostKey(friend,Number(gen),String(mode),String(equipment),rules,String(controls));
   const best=betterGhost(records[key],ghost)!;
   delete records[key];records[key]=best;
