@@ -10,6 +10,8 @@ import '@rarefriends/friendsdk/runtime.css';
 import '../games/sparking-stars/host.css';
 import {walletProvider as provider,injected} from './wallet-provider';
 import {DemoRecorder} from './demo-recorder';
+import {personalGhostStore} from './ghost-store';
+import {RULES} from '../games/sparking-stars/rules-version';
 import definitionJson from '../games/sparking-stars/game.json';
 const definition=parseChanceGame(definitionJson);
 const API='https://hkudnvqseodizcplkgvw.supabase.co/functions/v1/sparking-api';
@@ -46,19 +48,30 @@ function App(){
    if(!frame||e.source!==frame.contentWindow||e.data?.type!=='sparking-public-v1'||e.ports.length!==1)return;
    const port=e.ports[0],r=revision,{action,payload}=e.data;
    try{
-    if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator'].includes(action))throw new Error('Action refusée.');
+    if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator','ghost'].includes(action))throw new Error('Action refusée.');
     if(action==='context'){if(payload.needed===false)setAuthNeeded(false);port.postMessage({ok:true});return;}
     if(action==='prepare'){
      if(typeof payload.friendId!=='string'||!/^[1-9][0-9]{0,77}$/.test(payload.friendId))throw new Error('Friend incorrect.');
      if(friendId!==payload.friendId){clear();setAuthNeeded(false);friendId=payload.friendId;setNotice('Classement bêta · signature gratuite pour publier tes courses.');}setHasFriend(true);port.postMessage({ready:true});return;
     }
-    if(action==='creator'){port.postMessage(await request({action:'creator'}));return;}
-    if(action==='board'){const data=await request({action,gen:payload.gen,equipment:payload.equipment,period:payload.period});port.postMessage(data);return;}
+    if(action==='ghost'){
+     if(payload.friendId!==friendId||payload.rules!==RULES)throw new Error('Le pilote ou le circuit a changé.');
+     const wallet=await account();if(r!==revision||frame!==document.querySelector('iframe'))throw new Error('Le pilote a changé.');
+     try{
+      const store=personalGhostStore(window.localStorage,wallet,friendId,RULES);
+      if(payload.operation==='read')port.postMessage({ghosts:store.read()});
+      else if(payload.operation==='write')port.postMessage(store.save(payload.gen,payload.mode,payload.equipment,payload.ghost,payload.controls));
+      else throw new Error('Action de fantôme refusée.');
+     }catch(err){if(payload.operation==='read')port.postMessage({ghosts:{}});else throw err;}
+     return;
+    }
+    if(action==='creator'){port.postMessage(await request({action:'creator',controls:payload.controls}));return;}
+    if(action==='board'){const data=await request({action,gen:payload.gen,equipment:payload.equipment,period:payload.period,controls:payload.controls});port.postMessage(data);return;}
     if(action==='start'&&typeof payload.friendId==='string'&&/^[1-9][0-9]{0,77}$/.test(payload.friendId))friendId=payload.friendId;
     if(!token||expiry<Date.now()){setAuthNeeded(true);setNotice(action==='style'?'Connecte-toi pour retrouver ta collection sauvegardée.':'Connecte-toi pour publier ta course classée.');throw new Error('Clique « Activer le classement » au-dessus du jeu, puis relance la course.');}
     const exclusive=!(action==='style'&&payload.operation==='read');if(exclusive&&busy)throw new Error('Une demande est déjà en cours.');if(exclusive)busy=true;
     try{
-     await account();const body=action==='style'?{action,friendId:payload.friendId,operation:payload.operation,item:payload.item,kind:payload.kind}:action==='start'?{action,friendId:payload.friendId,equipment:payload.equipment,rules:payload.rules}:{action,id:payload.id,trace:payload.trace};
+     await account();const body=action==='style'?{action,friendId:payload.friendId,operation:payload.operation,item:payload.item,kind:payload.kind}:action==='start'?{action,friendId:payload.friendId,equipment:payload.equipment,rules:payload.rules,controls:payload.controls}:{action,id:payload.id,trace:payload.trace,controls:payload.controls,inputs:payload.inputs};
      const data=await request(body,true);if(r!==revision||frame!==document.querySelector('iframe'))throw new Error('Le pilote a changé.');port.postMessage(data);
     }finally{if(exclusive)busy=false;}
    }catch(err){port.postMessage({error:err instanceof Error?err.message:'Classement indisponible.'});}finally{port.close();}

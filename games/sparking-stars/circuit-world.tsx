@@ -15,6 +15,7 @@ export type GameWorldInteraction = Readonly<{
   labelOffset?: number;
 }>;
 export type GameWorldProps = {
+  onControl?: (input:'touch'|'mouse'|'pen'|'keyboard')=>void;
   focusRevision?: number;
   preloadWorld?:WorldConfig;
   ghost?:()=>ReturnType<typeof sampleGhost>;
@@ -30,7 +31,7 @@ export type GameWorldProps = {
 const VIEW = { x: 220, y: 265, width: 1160, height: 1160 / 1.5 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
-export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld }: GameWorldProps) {
+export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl }: GameWorldProps) {
   const assetCache=useRef(new Map<WorldConfig,Awaited<ReturnType<typeof loadWorldAssets>>>()),spriteCache=useRef<{id:bigint;value:Awaited<ReturnType<ReturnType<typeof createFriendReader>["read"]>>}|null>(null);
   const root = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null);
   const directClick=useRef<ReturnType<typeof createDirectClick>|null>(null);
@@ -158,11 +159,12 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
             const target = nearest(mover.current.state.position);
             if (target) { event.preventDefault(); onInteract(target); }
           }
-          if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, true)) event.preventDefault();
+          if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, true)) {onControl?.('keyboard');event.preventDefault();}
         }}
         onKeyUp={event => { if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, false)) event.preventDefault(); }}
         onPointerDown={event => {
           if (paused || status) return;
+          onControl?.(event.pointerType==='touch'?'touch':event.pointerType==='pen'?'pen':'mouse');
           event.currentTarget.focus(); const rect = event.currentTarget.getBoundingClientRect();
           const destination=unproject(VIEW.x + (event.clientX - rect.left) * VIEW.width / rect.width, VIEW.y + (event.clientY - rect.top) * VIEW.height / rect.height);
           if(mover.current&&directClick.current){const aim=directClick.current(mover.current.state.position,destination);mover.current.stop();mover.current.moveTo(aim.target);setClickBlocked(aim.blocked);}

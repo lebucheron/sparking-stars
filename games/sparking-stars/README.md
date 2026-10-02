@@ -124,16 +124,31 @@ Les cosmétiques pourront revenir : aucune exclusivité définitive promise.
 Tests : `node server/test-season-browser.mjs` et `supabase db query --linked --file supabase/tests/season.sql`.
 
 ## Fantôme et contrôles directs
-Après un tour complet, le meilleur parcours de cette session est rejoué par un
-Friend translucide sans collision. Catégories séparées par Friend, GEN, mode,
-équipement et version des règles ; aucun fantôme en course libre. En compétition,
+Après un tour complet, le meilleur parcours est rejoué par un Friend translucide
+sans collision. Catégories séparées par wallet, Friend, GEN, mode, équipement,
+version des règles et commandes ; aucun fantôme en course libre. En compétition,
 la sauvegarde attend l’acceptation serveur. Un tour incomplet/refusé ne remplace
 pas le fantôme. Une égalité conserve le précédent. Réglage dans Modes, désactivé
 par défaut avec réduction des animations. Temps actif uniquement : pauses et
 décompte n’avancent pas le fantôme. Fin de rejeu à l’arrivée. Aucun effet physique.
-Conservation en mémoire uniquement : recharger ou changer de Friend efface le
-fantôme. Le serveur conserve les temps, pas les anciennes trajectoires ; les
-records publiés avant cette version ne peuvent donc pas devenir des fantômes.
+Le meilleur fantôme est sauvegardé dans ce navigateur par le host de confiance,
+sans signature ni connexion au classement. Recharger le jeu le restaure, avec
+son chrono dans Chronos. Changer de wallet ou Friend ne mélange pas les parcours.
+Le sandbox conserve son origine isolée ; il n'accède pas directement au stockage.
+Si le stockage est bloqué ou plein, le fantôme reste disponible pour la session.
+La sauvegarde est bornée à 2 millions de caractères par wallet/Friend/version ;
+les catégories les moins récemment enregistrées peuvent être retirées à cette limite.
+Effacer les données du navigateur efface ces fantômes. Pas de synchronisation entre
+appareils. Les anciens records sans trajectoire ne produisent pas de fantôme.
+
+Classements Tactile et Clavier / souris distincts, dans Chronos et côté serveur.
+Les commandes initiales se règlent dans Modes. Une souris, un stylet ou une touche
+de déplacement reclasse définitivement le tour côté clavier / souris, y compris
+sur téléphone. Le fantôme et le défi du créateur suivent la même catégorie.
+Le serveur valide le journal de commandes et interdit les rétrogradations.
+Cette détection par événements navigateur ne certifie pas le matériel contre un
+client modifié ; le classement reste une bêta sans prix. Les anciens chronos
+restent accessibles dans Historique · commandes inconnues, sans attribution inventée.
 
 Clic/tactile : déplacement direct vers le point visé, arrêt devant le premier
 obstacle. Aucun contournement automatique ; le joueur vise lui-même les détours.
@@ -142,6 +157,7 @@ Le casse-brique utilise un décor sans barricade préchargé avant le départ : 
 lecture d’artwork ni écran de chargement lors de la destruction en course libre.
 
 Tests : `node server/test-ghost-controls.mjs`, `node server/test-ghost-browser.mjs`,
+`node server/test-personal-ghost.mjs`, `node server/test-personal-ghost-browser.mjs`,
 `node server/test-breaker-browser.mjs`. Le pilote de tests calcule ses propres
 points de clic intermédiaires ; ce planificateur ne fait pas partie du jeu livré.
 

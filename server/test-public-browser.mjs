@@ -13,13 +13,13 @@ for(const width of [1000,390]){
  beforeOpen:async({page})=>{
   await page.route('https://hkudnvqseodizcplkgvw.supabase.co/functions/v1/sparking-api',async route=>{
    const b=route.request().postDataJSON();let data;
-   if(b.action==='creator')data={friendId:'331213',gen:3,equipment:'feet',rules:RULES,ms:16184};
+   if(b.action==='creator')data={friendId:'331213',gen:3,equipment:'feet',rules:RULES,controls:b.controls,ms:16184};
    else if(b.action==='style')data={balance:0,cosmetic:'none',trail:'none',owned:[],laps:0,daily:0,active:true,endsAt:'2026-10-24T00:00:00Z'};
    else if(b.action==='challenge')data={id:'11111111-1111-4111-8111-111111111111',message:`lebucheron.github.io wants you to sign in with your Ethereum account:\n${b.wallet}\n\nTest login.\nURI: https://lebucheron.github.io/sparking-stars/\nChain ID: 4663`};
    else if(b.action==='login')data={token:'1'.repeat(64),expiresAt:Date.now()+60000};
-   else if(b.action==='start'){assert.match(route.request().headers().authorization,/^Bearer 1{64}$/);data={id:'22222222-2222-4222-8222-222222222222',generation:3,rules:RULES};}
-   else if(b.action==='finish'){try{saved=validateTrace(3,'feet',b.trace);finishes++;data={ms:saved};}catch(e){console.log('TRACE ERROR',e.message);data={error:e.message};}}
-   else if(b.action==='board')data={rules:RULES,rows:saved?[{friend_id:'7730',elapsed_ms:saved,rank:1,gap:0}]:[]};
+   else if(b.action==='start'){assert.match(route.request().headers().authorization,/^Bearer 1{64}$/);data={id:'22222222-2222-4222-8222-222222222222',generation:3,rules:RULES,controls:b.controls};}
+   else if(b.action==='finish'){try{saved=validateTrace(3,'feet',b.trace);finishes++;data={ms:saved,controls:b.controls};}catch(e){console.log('TRACE ERROR',e.message);data={error:e.message};}}
+   else if(b.action==='board')data={rules:RULES,controls:b.controls,rows:saved?[{friend_id:'7730',elapsed_ms:saved,rank:1,gap:0}]:[]};
    else throw new Error('Unexpected action');
    await route.fulfill({json:data,headers:{'access-control-allow-origin':'*'}});
   });
