@@ -11,7 +11,7 @@ for(const [width,height] of [[1440,1000],[1366,768],[390,844]])await testGame('g
   await page.getByRole('button',{name:'Agrandir la course'}).click();await page.getByRole('button',{name:'Quitter la vue course'}).waitFor();assert(await page.evaluate(()=>Boolean(document.fullscreenElement)));await page.getByRole('button',{name:'Quitter la vue course'}).click();
  }else assert.equal(await page.getByRole('button',{name:'Agrandir la course'}).isVisible(),true);
  await page.screenshot({path:`artifacts/paddock-${width}.png`});
- await game.getByRole('button',{name:'Modes',exact:true}).click();await game.getByRole('button',{name:'Retour à la piste',exact:true}).scrollIntoViewIfNeeded();await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();
+ await game.getByRole('button',{name:'Courir',exact:true}).click();await game.getByRole('button',{name:'Retour à la piste',exact:true}).scrollIntoViewIfNeeded();await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();
  await game.getByRole('button',{name:'C’est parti !',exact:true}).click();await game.locator('.countdown').waitFor({state:'hidden'});
  const canvas=game.locator('canvas[data-x]');await canvas.focus();const before=Number(await canvas.getAttribute('data-x'));await page.keyboard.down('ArrowRight');await canvas.evaluate(async()=>new Promise(r=>setTimeout(r,250)));await page.keyboard.up('ArrowRight');assert.notEqual(Number(await canvas.getAttribute('data-x')),before);
  await page.screenshot({path:`artifacts/paddock-race-${width}.png`});

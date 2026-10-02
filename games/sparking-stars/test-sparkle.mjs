@@ -6,7 +6,7 @@ await mkdir(out,{recursive:true});
 for(const width of [1000,390])await testGame('games/sparking-stars',{width,height:850,check:async({page,game})=>{
  await game.getByRole('button',{name:'C’est parti !',exact:true}).waitFor();
  await page.emulateMedia({reducedMotion:'no-preference'});
- await game.getByRole('button',{name:/Boutique ·/}).click();
+ await game.getByRole('button',{name:'Garage',exact:true}).click();
  await game.getByRole('button',{name:/^Antenne étoile/}).click();
  await game.locator('.pilot-portrait canvas:not([hidden])').waitFor();
  await game.locator('.wardrobe-hero').scrollIntoViewIfNeeded();

@@ -27,7 +27,7 @@ for(const width of [1000,390]){
   assert.equal(await page.getByRole('button',{name:'Activer le classement',exact:true}).isVisible(),false);
   // A test-only signature stub; no production wallet or key is used.
   await page.evaluate(()=>{const original=window.ethereum.request.bind(window.ethereum);window.ethereum.request=async args=>args.method==='personal_sign'?'0x'+'1'.repeat(130):original(args);});
-  await game.getByRole('button',{name:'Modes',exact:true}).click();
+  await game.getByRole('button',{name:'Courir',exact:true}).click();
   await game.getByRole('button',{name:/^Compétition · bêta/}).click();
   await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();
   await game.getByRole('button',{name:'C’est parti !',exact:true}).click();
@@ -49,7 +49,8 @@ for(const width of [1000,390]){
   }
   try{await game.getByText(/Chrono publié :/).waitFor();}catch(e){console.log('FINISH UI',await game.locator('.race-card').innerText());throw e;}assert.equal(finishes,1);
   await game.getByTestId('quest-notice').filter({hasText:'Première empreinte'}).waitFor();
-  await game.getByRole('button',{name:'Chronos',exact:true}).click();
+  await page.screenshot({path:`../../outputs/paddock-arrivee-${width}.png`});
+  await game.getByRole('button',{name:'Progresser',exact:true}).click();await game.getByRole('button',{name:'Chronos',exact:true}).click();
   await game.getByRole('button',{name:'Voir le classement public ↗',exact:true}).click();
   await game.getByRole('cell',{name:'Friend #7730',exact:true}).waitFor();
   assert.equal(await game.getByRole('cell',{name:'#1',exact:true}).count(),1);

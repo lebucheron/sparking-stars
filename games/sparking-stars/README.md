@@ -206,7 +206,7 @@ directe de ses fonctions v3/v5/v6 avec buffer dans notre adaptateur.
 
 ## Quêtes personnelles
 
-Ouvrir Modes → Quêtes, ou Voir mes quêtes après un tour. Première empreinte
+Ouvrir Progresser → Quêtes, ou Voir mes quêtes après un tour. Première empreinte
 récompense le premier tour, Étoile régulière trois tours, et Chasseur de fantômes
 la première amélioration du meilleur fantôme. Ces badges sont personnels, sans RF,
 monnaie, équipement ou avantage compétitif. Les anciens chronos ne deviennent pas
@@ -233,3 +233,19 @@ une récompense serveur. Aucun serveur ou contrat supplémentaire n'est déploy�
 
 Tests : server/test-quests.mjs et server/test-quests-browser.mjs, plus le parcours
 classé dans server/test-public-browser.mjs.
+
+## Paddock et palette
+
+Trois destinations regroupent les écrans : Courir (mode, équipement, commandes
+et terrains), Progresser (quêtes, chronos, fantôme, défi du créateur), Garage
+(boutique et collection). Changer de destination ferme le panneau précédent.
+La navigation disparaît pendant un tour ; Quitter ramène au paddock sans terminer
+le tour ni faire progresser une quête. Le résultat présente le chrono, le progrès
+et Rejouer ; les références supplémentaires se déplient dans Détails du tour.
+
+Fond blanc cassé, textes charbon, contours gris et surfaces légèrement arrondies
+remplacent les grands cadres noirs dans l'interface. La géométrie des circuits,
+les règles, la sauvegarde et les contrats restent inchangés. Le dialogue de
+signature demeure dans le parent de confiance. Tests : test-paddock-ui.mjs,
+test-mobile-layout.mjs, test-race-focus.mjs et les parcours de course, quêtes,
+fantômes, connexion à la demande et défi du créateur dans server/.
