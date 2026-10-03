@@ -249,3 +249,16 @@ les règles, la sauvegarde et les contrats restent inchangés. Le dialogue de
 signature demeure dans le parent de confiance. Tests : test-paddock-ui.mjs,
 test-mobile-layout.mjs, test-race-focus.mjs et les parcours de course, quêtes,
 fantômes, connexion à la demande et défi du créateur dans server/.
+
+La vue course s'active désormais automatiquement après un départ réussi, dans la
+fenêtre du navigateur, sans exiger le plein écran natif. La barre des menus et le
+cadre du paddock s'effacent. Les étoiles donnent un retour visuel bref, désactivé
+en animation avec la réduction des mouvements ; la dernière étoile annonce le
+retour à l'arrivée. Rejouer garde cette vue, Retour au paddock et Quitter restaurent
+les menus. En compétition, la connexion et l'enregistrement serveur précèdent
+l'activation. Tests : server/test-immersive-race.mjs, PC et mobile portrait/paysage.
+
+Le rendu prépare les segments immuables du circuit une seule fois pour les calculs
+de distance à la route, sans tableau temporaire à chaque image. Les règles serveur
+restent inchangées ; test-route-distance.mjs compare exactement 16 940 mesures avec
+le calcul existant. Cela n'établit pas une trajectoire optimale autour des obstacles.

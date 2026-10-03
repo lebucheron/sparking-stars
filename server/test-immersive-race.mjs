@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {testGame} from '../games/sparking-stars/test-profile-helper.mjs';
+import {walkTo} from './test-drive.mjs';
+import {RULES} from '../games/sparking-stars/rules-version.ts';
+for(const [width,height] of [[1200,900],[390,844],[844,390]])await testGame('games/sparking-stars',{publicHost:true,profile:{generation:6,tier:0},width,height,timeout:30000,beforeOpen:async({page})=>{await page.route('https://hkudnvqseodizcplkgvw.supabase.co/functions/v1/sparking-api',async route=>{const b=route.request().postDataJSON();assert(['creator','board'].includes(b.action));await route.fulfill({json:{rules:RULES,controls:b.controls,ms:null,rows:[]}});});},check:async({page,game})=>{
+ await game.getByRole('button',{name:'C’est parti !',exact:true}).click();await game.locator('html.race-focus').waitFor();assert.equal(await page.evaluate(()=>Boolean(document.fullscreenElement)),false,'Automatic focus must not require native fullscreen');assert.equal(await page.locator('.rf-frame-toolbar').isVisible(),false);await game.locator('.countdown').waitFor({state:'hidden'});
+ const canvas=game.locator('canvas[data-x]'),points=[[146,277],[88,192],[146,107],[288,72],[430,107],[488,192],[430,277],[288,312]];
+ for(let i=0;i<points.length;i++){await walkTo(game,canvas,6,points[i],width<500);if(i===0){await game.getByTestId('star-feedback').filter({hasText:'Étoile attrapée'}).waitFor();await page.screenshot({path:`../../outputs/course-focus-${width}.png`});}if(i===6){await game.getByText('Dernière étoile · retourne à l’arrivée',{exact:true}).waitFor();}}
+ await game.getByRole('button',{name:'Retour au paddock',exact:true}).waitFor();await game.getByTestId('quest-notice').filter({hasText:'Première empreinte'}).waitFor();await page.screenshot({path:`../../outputs/course-arrivee-${width}.png`});
+ await game.getByRole('button',{name:'Rejouer',exact:true}).click();await game.locator('.countdown').waitFor();await game.getByRole('button',{name:'Quitter la course',exact:true}).click();await game.locator('html.race-focus').waitFor({state:'detached'});await game.getByRole('navigation',{name:'Le paddock'}).waitFor();assert(await page.locator('.rf-frame-toolbar').isVisible());assert.equal(await game.getByTestId('timer').innerText(),'0.000 s');
+ console.log(`PASS immersive ${width}x${height}: automatic focus, accessible pickup feedback, arrival direction, completed lap/quest, replay and safe return.`);
+}});

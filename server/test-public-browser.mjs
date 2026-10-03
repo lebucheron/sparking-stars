@@ -50,7 +50,7 @@ for(const width of [1000,390]){
   try{await game.getByText(/Chrono publié :/).waitFor();}catch(e){console.log('FINISH UI',await game.locator('.race-card').innerText());throw e;}assert.equal(finishes,1);
   await game.getByTestId('quest-notice').filter({hasText:'Première empreinte'}).waitFor();
   await page.screenshot({path:`../../outputs/paddock-arrivee-${width}.png`});
-  await game.getByRole('button',{name:'Progresser',exact:true}).click();await game.getByRole('button',{name:'Chronos',exact:true}).click();
+  if(await page.getByRole('button',{name:'Quitter la vue course',exact:true}).isVisible())await page.getByRole('button',{name:'Quitter la vue course',exact:true}).click();await game.getByRole('button',{name:'Progresser',exact:true}).click();await game.getByRole('button',{name:'Chronos',exact:true}).click();
   await game.getByRole('button',{name:'Voir le classement public ↗',exact:true}).click();
   await game.getByRole('cell',{name:'Friend #7730',exact:true}).waitFor();
   assert.equal(await game.getByRole('cell',{name:'#1',exact:true}).count(),1);

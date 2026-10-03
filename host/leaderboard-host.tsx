@@ -49,7 +49,8 @@ function App(){
    if(!frame||e.source!==frame.contentWindow||e.data?.type!=='sparking-public-v1'||e.ports.length!==1)return;
    const port=e.ports[0],r=revision,{action,payload}=e.data;
    try{
-    if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator','ghost','quests'].includes(action))throw new Error('Action refusée.');
+    if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator','ghost','quests','focus'].includes(action))throw new Error('Action refusée.');
+    if(action==='focus'){if(typeof payload.active!=='boolean')throw Error('Vue incorrecte.');setCinema(payload.active);if(!payload.active&&document.fullscreenElement)void document.exitFullscreen().catch(()=>{});port.postMessage({ok:true});return;}
     if(action==='context'){if(payload.needed===false)setAuthNeeded(false);port.postMessage({ok:true});return;}
     if(action==='prepare'){
      if(typeof payload.friendId!=='string'||!/^[1-9][0-9]{0,77}$/.test(payload.friendId))throw new Error('Friend incorrect.');

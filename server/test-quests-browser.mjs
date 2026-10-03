@@ -5,7 +5,7 @@ import {RULES} from '../games/sparking-stars/rules-version.ts';
 for(const width of [1000,390])await testGame('games/sparking-stars',{publicHost:true,profile:{generation:6,tier:0},width,height:900,timeout:30000,
  beforeOpen:async({page})=>{await page.route('https://hkudnvqseodizcplkgvw.supabase.co/functions/v1/sparking-api',async route=>{const b=route.request().postDataJSON();assert(['creator','board'].includes(b.action));await route.fulfill({json:{rules:RULES,controls:b.controls,ms:null,rows:[]}});});},
  check:async({page,game})=>{
-  const open=async()=>{await game.getByRole('button',{name:'Progresser',exact:true}).click();await game.getByRole('button',{name:'Quêtes',exact:true}).click();await game.getByRole('dialog',{name:'Quêtes personnelles'}).waitFor();};
+  const open=async()=>{if(await page.getByRole('button',{name:'Quitter la vue course',exact:true}).isVisible())await page.getByRole('button',{name:'Quitter la vue course',exact:true}).click();await game.getByRole('button',{name:'Progresser',exact:true}).click();await game.getByRole('button',{name:'Quêtes',exact:true}).click();await game.getByRole('dialog',{name:'Quêtes personnelles'}).waitFor();};
   await open();await game.getByText('0 / 1 tour',{exact:true}).waitFor();await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();
   await game.getByRole('button',{name:'C’est parti !',exact:true}).click();await game.locator('.countdown').waitFor({state:'hidden'});
   const canvas=game.locator('canvas[data-x]');for(const point of [[146,277],[88,192],[146,107],[288,72],[430,107],[488,192],[430,277],[288,312]])await walkTo(game,canvas,6,point,width<500);
