@@ -262,3 +262,17 @@ Le rendu prépare les segments immuables du circuit une seule fois pour les calc
 de distance à la route, sans tableau temporaire à chaque image. Les règles serveur
 restent inchangées ; test-route-distance.mjs compare exactement 16 940 mesures avec
 le calcul existant. Cela n'établit pas une trajectoire optimale autour des obstacles.
+
+## Joystick et course Halloween
+
+Sur appareil tactile, le joystick fixe en bas à gauche utilise les huit directions
+et la vitesse des commandes existantes. Le second pouce peut toucher le circuit.
+Relâchement, perte de capture, pause et sortie arrêtent le déplacement. Une souris,
+un stylet ou les touches de conduite conservent la classification PC.
+
+Courir propose Halloween · La boucle hantée, une exploration séparée des GEN.
+Le passage trompeur téléporte au point précédent sans remettre le chrono à zéro ;
+une lanterne suggère le détour secret qui brise la boucle. Cette course à pied,
+accessible après la vérification habituelle du Friend, ne publie aucun classement,
+ne verse aucune récompense et ne modifie ni quêtes ni fantômes des GEN.
+Tests : server/test-touch-stick.mjs et server/test-halloween.mjs.
