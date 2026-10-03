@@ -5,11 +5,11 @@ for(let generation=1;generation<=6;generation++){
  await testGame('games/sparking-stars',{profile:{generation,tier},width:generation===6?390:1000,check:async({game})=>{
   await game.getByRole('button',{name:'C’est parti !',exact:true}).waitFor();
   assert.match(await game.locator('.hud').innerText(),new RegExp(`GEN ${generation} · TIER ${tier}`));
-  await game.getByRole('button',{name:'Les 6 terrains',exact:true}).click();
+  await game.getByRole('button',{name:'Courir',exact:true}).click();await game.getByRole('button',{name:'Les 6 terrains',exact:true}).click();
   assert.equal(await game.locator('.terrain-grid button:disabled').count(),5);
   assert.match(await game.locator('.terrain-grid button:enabled').innerText(),new RegExp(`GEN ${generation}`));
   await game.getByRole('button',{name:'Fermer',exact:true}).click();
-  await game.getByRole('button',{name:/Boutique ·/}).click();
+  await game.getByRole('button',{name:'Garage',exact:true}).click();
   assert.match(await game.locator('body').innerText(),new RegExp(`Tier officiel ${tier} / 4`));
   assert.equal(await game.getByRole('button',{name:/Acheter.*tier|Passer.*tier/i}).count(),0);
   assert.match(await game.locator('.shop-balance').innerText(),new RegExp(`remise ${tier>=3?20:0} %`));

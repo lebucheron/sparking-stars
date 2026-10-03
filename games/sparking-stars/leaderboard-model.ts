@@ -1,5 +1,6 @@
 import type {Equipment,Bonus} from "./shop-model";
-export type Lap={id:number;friendId:string;gen:number;mode:"training"|"free";equipment:Equipment;tier:number;bonus:Bonus;ms:number;finishedAt:number};
+import type {Controls} from "./controls";
+export type Lap={controls?:Controls;id:number;friendId:string;gen:number;mode:"training"|"free";equipment:Equipment;tier:number;bonus:Bonus;ms:number;finishedAt:number};
 export type Period="day"|"week"|"month"|"session";
 export const preciseTime=(ms:number)=>(Math.round(ms)/1000).toFixed(3)+" s";
 export function periodStart(period:Period,now:number){

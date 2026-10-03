@@ -22,7 +22,7 @@ await testGame('games/sparking-stars',{width:390,height:850,timeout:25000,check:
  const fits=await game.locator('.race-card').evaluate(el=>{const a=el.getBoundingClientRect(),b=document.querySelector('.hint').getBoundingClientRect();return a.bottom<b.top&&a.left>=0&&a.right<=innerWidth;});assert.ok(fits,'Finish card does not overlap footer');
  await page.locator('.rf-game-frame').screenshot({path:`${out}/finish-mobile.png`});
  const finalTime=await game.getByTestId('timer').innerText();
- await game.getByRole('button',{name:'Chronos',exact:true}).click();
+ await game.getByRole('button',{name:'Progresser',exact:true}).click();await game.getByRole('button',{name:'Chronos',exact:true}).click();
  assert.equal(await game.getByTestId('leader-time').innerText(),finalTime);
  assert.equal(await game.locator('tbody tr').count(),1);
  assert.match(await game.locator('tbody').innerText(),/Friend #7730/);

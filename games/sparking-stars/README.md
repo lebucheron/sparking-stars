@@ -124,16 +124,31 @@ Les cosmétiques pourront revenir : aucune exclusivité définitive promise.
 Tests : `node server/test-season-browser.mjs` et `supabase db query --linked --file supabase/tests/season.sql`.
 
 ## Fantôme et contrôles directs
-Après un tour complet, le meilleur parcours de cette session est rejoué par un
-Friend translucide sans collision. Catégories séparées par Friend, GEN, mode,
-équipement et version des règles ; aucun fantôme en course libre. En compétition,
+Après un tour complet, le meilleur parcours est rejoué par un Friend translucide
+sans collision. Catégories séparées par wallet, Friend, GEN, mode, équipement,
+version des règles et commandes ; aucun fantôme en course libre. En compétition,
 la sauvegarde attend l’acceptation serveur. Un tour incomplet/refusé ne remplace
 pas le fantôme. Une égalité conserve le précédent. Réglage dans Modes, désactivé
 par défaut avec réduction des animations. Temps actif uniquement : pauses et
 décompte n’avancent pas le fantôme. Fin de rejeu à l’arrivée. Aucun effet physique.
-Conservation en mémoire uniquement : recharger ou changer de Friend efface le
-fantôme. Le serveur conserve les temps, pas les anciennes trajectoires ; les
-records publiés avant cette version ne peuvent donc pas devenir des fantômes.
+Le meilleur fantôme est sauvegardé dans ce navigateur par le host de confiance,
+sans signature ni connexion au classement. Recharger le jeu le restaure, avec
+son chrono dans Chronos. Changer de wallet ou Friend ne mélange pas les parcours.
+Le sandbox conserve son origine isolée ; il n'accède pas directement au stockage.
+Si le stockage est bloqué ou plein, le fantôme reste disponible pour la session.
+La sauvegarde est bornée à 2 millions de caractères par wallet/Friend/version ;
+les catégories les moins récemment enregistrées peuvent être retirées à cette limite.
+Effacer les données du navigateur efface ces fantômes. Pas de synchronisation entre
+appareils. Les anciens records sans trajectoire ne produisent pas de fantôme.
+
+Classements Tactile et Clavier / souris distincts, dans Chronos et côté serveur.
+Les commandes initiales se règlent dans Modes. Une souris, un stylet ou une touche
+de déplacement reclasse définitivement le tour côté clavier / souris, y compris
+sur téléphone. Le fantôme et le défi du créateur suivent la même catégorie.
+Le serveur valide le journal de commandes et interdit les rétrogradations.
+Cette détection par événements navigateur ne certifie pas le matériel contre un
+client modifié ; le classement reste une bêta sans prix. Les anciens chronos
+restent accessibles dans Historique · commandes inconnues, sans attribution inventée.
 
 Clic/tactile : déplacement direct vers le point visé, arrêt devant le premier
 obstacle. Aucun contournement automatique ; le joueur vise lui-même les détours.
@@ -142,6 +157,7 @@ Le casse-brique utilise un décor sans barricade préchargé avant le départ : 
 lecture d’artwork ni écran de chargement lors de la destruction en course libre.
 
 Tests : `node server/test-ghost-controls.mjs`, `node server/test-ghost-browser.mjs`,
+`node server/test-personal-ghost.mjs`, `node server/test-personal-ghost-browser.mjs`,
 `node server/test-breaker-browser.mjs`. Le pilote de tests calcule ses propres
 points de clic intermédiaires ; ce planificateur ne fait pas partie du jeu livré.
 
@@ -187,3 +203,76 @@ test-season-browser.mjs, test-presentation.mjs dans server/.
 Audit npm : dépendance transitive uuid signalée modérée (GHSA-w5hq-g745-h8pq),
 sans correctif proposé par npm pour la chaîne MetaMask actuelle. Aucune utilisation
 directe de ses fonctions v3/v5/v6 avec buffer dans notre adaptateur.
+
+## Quêtes personnelles
+
+Ouvrir Progresser → Quêtes, ou Voir mes quêtes après un tour. Première empreinte
+récompense le premier tour, Étoile régulière trois tours, et Chasseur de fantômes
+la première amélioration du meilleur fantôme. Ces badges sont personnels, sans RF,
+monnaie, équipement ou avantage compétitif. Les anciens chronos ne deviennent pas
+des tours accomplis rétroactivement ; le meilleur fantôme existant reste cependant
+la référence de l'exploit d'amélioration.
+
+Le défi renouvelable attend cinq tours terminés, puis choisit la trajectoire du
+temps médian des cinq derniers tours. Sa cible reste figée : un tour plus lent
+ne la change pas. Battre cette cible OU terminer trois tours dans la marge de 3 %
+au-dessus de son temps valide le défi. Les trois tours proches ne doivent pas être
+consécutifs. Une réussite sélectionne la nouvelle médiane des cinq derniers tours
+pour le défi suivant. Le bouton du carnet permet de rejouer cette trajectoire ou
+de revenir au meilleur fantôme personnel.
+
+Seuls les tours terminés en entraînement et les tours acceptés en compétition
+comptent ; jamais les courses libres, abandons ou publications refusées. Chaque
+Friend/GEN/mode/équipement/règles/commandes a sa progression distincte. Un passage
+à la souris utilise la catégorie clavier/souris. La sauvegarde locale dans le
+parent de confiance est isolée par wallet et Friend, limitée à 2 Mo, et valide les
+parcours et catégories. En cas de stockage bloqué, la progression reste disponible
+pendant la session. Les trajectoires récentes sont espacées d'environ 250 ms pour
+limiter leur taille. Les quêtes locales ne constituent pas une preuve pour accorder
+une récompense serveur. Aucun serveur ou contrat supplémentaire n'est déployé.
+
+Tests : server/test-quests.mjs et server/test-quests-browser.mjs, plus le parcours
+classé dans server/test-public-browser.mjs.
+
+## Paddock et palette
+
+Trois destinations regroupent les écrans : Courir (mode, équipement, commandes
+et terrains), Progresser (quêtes, chronos, fantôme, défi du créateur), Garage
+(boutique et collection). Changer de destination ferme le panneau précédent.
+La navigation disparaît pendant un tour ; Quitter ramène au paddock sans terminer
+le tour ni faire progresser une quête. Le résultat présente le chrono, le progrès
+et Rejouer ; les références supplémentaires se déplient dans Détails du tour.
+
+Fond blanc cassé, textes charbon, contours gris et surfaces légèrement arrondies
+remplacent les grands cadres noirs dans l'interface. La géométrie des circuits,
+les règles, la sauvegarde et les contrats restent inchangés. Le dialogue de
+signature demeure dans le parent de confiance. Tests : test-paddock-ui.mjs,
+test-mobile-layout.mjs, test-race-focus.mjs et les parcours de course, quêtes,
+fantômes, connexion à la demande et défi du créateur dans server/.
+
+La vue course s'active désormais automatiquement après un départ réussi, dans la
+fenêtre du navigateur, sans exiger le plein écran natif. La barre des menus et le
+cadre du paddock s'effacent. Les étoiles donnent un retour visuel bref, désactivé
+en animation avec la réduction des mouvements ; la dernière étoile annonce le
+retour à l'arrivée. Rejouer garde cette vue, Retour au paddock et Quitter restaurent
+les menus. En compétition, la connexion et l'enregistrement serveur précèdent
+l'activation. Tests : server/test-immersive-race.mjs, PC et mobile portrait/paysage.
+
+Le rendu prépare les segments immuables du circuit une seule fois pour les calculs
+de distance à la route, sans tableau temporaire à chaque image. Les règles serveur
+restent inchangées ; test-route-distance.mjs compare exactement 16 940 mesures avec
+le calcul existant. Cela n'établit pas une trajectoire optimale autour des obstacles.
+
+## Joystick et course Halloween
+
+Sur appareil tactile, le joystick fixe en bas à gauche utilise les huit directions
+et la vitesse des commandes existantes. Le second pouce peut toucher le circuit.
+Relâchement, perte de capture, pause et sortie arrêtent le déplacement. Une souris,
+un stylet ou les touches de conduite conservent la classification PC.
+
+Courir propose Halloween · La boucle hantée, une exploration séparée des GEN.
+Le passage trompeur téléporte au point précédent sans remettre le chrono à zéro ;
+une lanterne suggère le détour secret qui brise la boucle. Cette course à pied,
+accessible après la vérification habituelle du Friend, ne publie aucun classement,
+ne verse aucune récompense et ne modifie ni quêtes ni fantômes des GEN.
+Tests : server/test-touch-stick.mjs et server/test-halloween.mjs.

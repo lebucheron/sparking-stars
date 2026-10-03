@@ -1,7 +1,7 @@
 
 import type {WorldPoint} from '@rarefriends/friendsdk/world';
 export type Ghost={ms:number;points:readonly (readonly [number,number,number])[]};
-export function ghostKey(friend:string,gen:number,mode:string,equipment:string,rules:string){return [friend,gen,mode,equipment,rules].join(':');}
+export function ghostKey(friend:string,gen:number,mode:string,equipment:string,rules:string,controls='desktop'){return [friend,gen,mode,equipment,rules,controls].join(':');}
 export function makeGhost(points:readonly number[][]):Ghost|null{
  if(points.length<2||points.length>40000)return null;
  const end=points.at(-1)!;if(end[0]<1000||end[0]>600000)return null;
