@@ -10,6 +10,7 @@ import { loadWorldAssets } from "@rarefriends/friendsdk/assets";
 import { project, unproject, type WorldConfig, type WorldPoint } from "@rarefriends/friendsdk/world";
 import { createWorldMovement } from "@rarefriends/friendsdk/movement";
 import { createFriendReader, spriteFrame } from "@rarefriends/friendsdk/sprites";
+import {friendArt} from './friend-art';
 
 export type GameWorldInteraction = Readonly<{
   id: string; label: string; position: WorldPoint; reach?: number;
@@ -17,6 +18,7 @@ export type GameWorldInteraction = Readonly<{
   labelOffset?: number;
 }>;
 export type GameWorldProps = {
+  resetRevision?:number;
   relocate?:()=>WorldPoint|null;
   onControl?: (input:'touch'|'mouse'|'pen'|'keyboard')=>void;
   focusRevision?: number;
@@ -33,7 +35,8 @@ export type GameWorldProps = {
 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
-export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate }: GameWorldProps) {
+export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0 }: GameWorldProps) {
+  const resetRequested=useRef<WorldPoint|null>(null);
   const VIEW=useMemo(()=>courseCamera(world),[world]);
   const aspect=VIEW.width/VIEW.height,bufferHeight=Math.round(960/aspect);
   const assetCache=useRef(new Map<WorldConfig,Awaited<ReturnType<typeof loadWorldAssets>>>()),spriteCache=useRef<{id:bigint;value:Awaited<ReturnType<ReturnType<typeof createFriendReader>["read"]>>}|null>(null);
@@ -62,6 +65,8 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     observer.observe(root.current); return () => observer.disconnect();
   }, [aspect]);
   useEffect(() => { if (paused){stick.current={x:0,y:0};mover.current?.stop();} }, [paused]);
+  // Restart only movement; keep the loaded terrain and canonical artwork alive.
+  useEffect(()=>{resetRequested.current=spawn;stick.current={x:0,y:0};mover.current?.stop();setClickBlocked(false);},[resetRevision,spawn]);
   // Restore keyboard control after artwork loads, a restart, or a runtime menu.
   useEffect(() => {
     if (!paused && !status) canvas.current?.focus({ preventScroll: true });
@@ -82,6 +87,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
       if (abort.signal.aborted) return;
       setStatus("");
       const render = (now: number) => {
+        if(resetRequested.current){movement.stop();movement=createWorldMovement(world,resetRequested.current);mover.current=movement;resetRequested.current=null;previous=0;}
         const delta = !live.current.paused && !document.hidden && previous ? now - previous : 0;
         let budget=Math.min(100,delta)*(live.current.movementScale?.(movement.state.position) ?? 1);
         if(stick.current.x||stick.current.y)steer(stick.current.x,stick.current.y);
@@ -149,7 +155,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     if(cached&&cachedSprite)begin([cached,cachedSprite]);
     else void Promise.all([
       loadWorldAssets(world,{signals:false,color:false},abort.signal),
-      cachedSprite?Promise.resolve(cachedSprite):createFriendReader().read(friendId),
+      cachedSprite?Promise.resolve(cachedSprite):friendArt.read(friendId),
       preloadWorld&&preloadWorld!==world?loadWorldAssets(preloadWorld,{signals:false,color:false},abort.signal):Promise.resolve(null),
     ]).then(([assets,sprites,alternate])=>{
       if(abort.signal.aborted)return;assetCache.current.clear();assetCache.current.set(world,assets);if(alternate&&preloadWorld)assetCache.current.set(preloadWorld,alternate);spriteCache.current={id:friendId,value:sprites};begin([assets,sprites]);
