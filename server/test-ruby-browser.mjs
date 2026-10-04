@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {testGame} from '../games/sparking-stars/test-profile-helper.mjs';
-await testGame('games/sparking-stars',{publicHost:true,profile:{generation:6,tier:0},width:1000,height:850,check:async({page,game})=>{
+await testGame('games/sparking-stars',{publicHost:true,profile:{generation:5,tier:0},width:1000,height:850,check:async({page,game})=>{
+ await game.getByRole('button',{name:'Courir',exact:true}).click();await game.getByRole('button',{name:'Les 6 terrains',exact:true}).click();await game.getByRole('button',{name:/GEN 5 · Trajectoires/}).click();
  await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});const canvas=game.locator('canvas[data-x]');
  assert.equal(await canvas.getAttribute('data-ruby-x'),'280');assert.equal(await canvas.getAttribute('data-ruby-y'),'205');
  await page.screenshot({path:'../../outputs/gen5-preview-1000.png'});

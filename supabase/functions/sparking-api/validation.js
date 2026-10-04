@@ -4492,105 +4492,127 @@ var terrains_default = [
   },
   {
     name: "Les Canaux",
-    subtitle: "Deux bassins, des passages \xE9troits : vise juste.",
-    difficulty: "Pr\xE9cision",
+    subtitle: "Deux canaux, deux ponts : coupe au plus court ou prends le large.",
+    difficulty: "Ponts et trajectoires",
     width: 27,
     reach: 15,
     route: [
       [
-        288,
-        325
-      ],
-      [
-        115,
-        315
-      ],
-      [
-        80,
-        240
-      ],
-      [
-        80,
-        100
-      ],
-      [
-        175,
-        65
-      ],
-      [
         285,
-        65
+        330
       ],
       [
-        290,
-        160
+        110,
+        320
       ],
       [
-        285,
-        245
+        85,
+        198
       ],
       [
-        405,
-        310
+        275,
+        218
       ],
       [
-        500,
-        300
+        275,
+        85
       ],
       [
-        505,
-        160
-      ],
-      [
-        480,
+        180,
         70
       ],
       [
-        390,
+        90,
         65
       ],
       [
-        410,
-        200
+        60,
+        300
       ],
       [
-        380,
-        275
+        285,
+        295
+      ],
+      [
+        480,
+        300
+      ],
+      [
+        490,
+        187
+      ],
+      [
+        300,
+        187
+      ],
+      [
+        300,
+        65
+      ],
+      [
+        460,
+        65
+      ],
+      [
+        510,
+        95
+      ],
+      [
+        510,
+        280
       ]
     ],
     holes: [
       [
         135,
         125,
-        100,
-        135
+        110,
+        60
       ],
       [
-        350,
+        135,
+        211,
+        110,
+        54
+      ],
+      [
+        325,
+        125,
         100,
-        65,
-        60
+        50
+      ],
+      [
+        325,
+        199,
+        100,
+        66
       ]
     ],
     blocks: [],
     props: [
       [
         "reeds",
-        165,
-        265,
-        0.8
+        125,
+        285,
+        0.6
       ],
       [
         "buoy",
-        365,
-        170,
-        0.7
+        435,
+        145,
+        0.5
+      ],
+      [
+        "reeds",
+        255,
+        240,
+        0.45
       ],
       [
         "bench",
-        300,
-        200,
-        0.6
+        320,
+        325,
+        0.55
       ]
     ],
     shape: [
@@ -4619,7 +4641,83 @@ var terrains_default = [
         352
       ]
     ],
-    level: 3
+    level: 3,
+    startingObstacle: [
+      245,
+      300
+    ],
+    forkSegments: [
+      3,
+      11
+    ],
+    sidePaths: [
+      [
+        [
+          85,
+          198
+        ],
+        [
+          275,
+          198
+        ],
+        [
+          275,
+          218
+        ]
+      ],
+      [
+        [
+          85,
+          198
+        ],
+        [
+          85,
+          85
+        ],
+        [
+          275,
+          85
+        ],
+        [
+          275,
+          218
+        ]
+      ],
+      [
+        [
+          490,
+          187
+        ],
+        [
+          300,
+          187
+        ]
+      ],
+      [
+        [
+          490,
+          187
+        ],
+        [
+          480,
+          300
+        ],
+        [
+          285,
+          295
+        ],
+        [
+          300,
+          187
+        ]
+      ]
+    ],
+    sideWidths: [
+      22,
+      30,
+      22,
+      32
+    ]
   },
   {
     name: "La Carri\xE8re",
@@ -5080,8 +5178,8 @@ var terrains = terrains_default.map((d, index) => {
     signals: [],
     missingChunks: [],
     geometry: { polygons: [d.shape], holes, depth: 18 + (d.level - 1) * 3 },
-    // GEN5 paints its whole fork network together; avoid a second set of SDK road outlines.
-    paths: index === 4 ? [] : [{ points: [...route, route[0]], width: d.width }],
+    // Fork circuits paint the complete network together, avoiding duplicate SDK outlines.
+    paths: d.sidePaths ? [] : [{ points: [...route, route[0]], width: d.width }],
     patches: [],
     props: d.props.map(([type, x, y, scale]) => ({ type, x: Number(x), y: Number(y), scale: Number(scale) })),
     collision: { blocked: d.blocks.map(([x, y, w, h]) => ({ x, y, w, h })) }
@@ -5105,7 +5203,7 @@ function distanceToTrack(point2, t) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-8de103cd058354f5";
+var RULES = "race-cbe98c663373fcd9";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

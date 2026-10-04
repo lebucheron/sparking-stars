@@ -148,9 +148,9 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   }
   function draw(ctx:CanvasRenderingContext2D){
     const r=race.current;ctx.save();ctx.lineJoin="round";
-    if(terrain.gen===5)drawRoadNetwork(ctx,terrain);else{
+    if(terrain.sidePaths)drawRoadNetwork(ctx,terrain);else{
     ctx.beginPath();
-    [...route,route[0]].forEach((p,i)=>{const [x,y]=project(...p);if(i===0||(terrain.forkSegments?.includes(i)))ctx.moveTo(x,y);else ctx.lineTo(x,y);});
+    [...route,route[0]].forEach((p,i)=>{const [x,y]=project(...p);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
     ctx.strokeStyle="#000000";ctx.lineWidth=terrain.width+6;ctx.stroke();ctx.strokeStyle="#ffffff";ctx.lineWidth=terrain.width;ctx.stroke();
     ctx.setLineDash([7,10]);ctx.lineWidth=2;ctx.strokeStyle="#000000";ctx.stroke();ctx.setLineDash([]);
     }
