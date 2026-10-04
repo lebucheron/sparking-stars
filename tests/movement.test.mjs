@@ -11,6 +11,19 @@ function square(blocked = []) {
     }, props: [], actors: [], paths: [], patches: [], signals: [], missingChunks: [], collision: { blocked } });
 }
 
+test('temporary obstacles retain click destinations and resume after opening', () => {
+  let blocked=true;
+  const movement=createWorldMovement(square(),[120,120],{canTraverse:()=>!blocked});
+  movement.moveTo([150,120]);
+  assert.deepEqual(movement.update(40).position,[120,120]);
+  assert.deepEqual(movement.state.destination,[150,120]);
+  assert.equal(movement.state.walking,false);
+  blocked=false;assert.notDeepEqual(movement.update(40).position,[120,120]);
+  movement.setKey('d',true);blocked=true;const before=movement.state.position;
+  assert.deepEqual(movement.update(40).position,before,'Manual controls cannot cross a temporary obstacle');
+  movement.stop();blocked=false;assert.deepEqual(movement.update(40).position,before,'Release clears a blocked command');
+});
+
 test('arrows and WASD normalize diagonal speed and cancel opposite directions', () => {
   const spawn = [120, 120], world = square();
   const run = keys => {

@@ -4770,7 +4770,8 @@ var terrains_default = [
   },
   {
     name: "Le Jardin",
-    subtitle: "Deux boucles, un croisement : trouve ton rythme dans le Jardin en huit.",
+    subtitle: "Deux boucles, un croisement et un Jardin qui ne tient pas en place.",
+    movingBush: { center: [435, 105], direction: [-0.316227766, 0.948683298], amplitude: 30, period: 3200, radius: 12 },
     difficulty: "D\xE9couverte",
     width: 44,
     reach: 21,
@@ -4928,7 +4929,7 @@ function distanceToRoute(point2, route) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-782c61112cf09a12";
+var RULES = "race-2af4e29ef855e98a";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

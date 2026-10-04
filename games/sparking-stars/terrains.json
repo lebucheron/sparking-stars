@@ -766,7 +766,8 @@
   },
   {
     "name": "Le Jardin",
-    "subtitle": "Deux boucles, un croisement : trouve ton rythme dans le Jardin en huit.",
+    "subtitle": "Deux boucles, un croisement et un Jardin qui ne tient pas en place.",
+    "movingBush": {"center": [435, 105], "direction": [-0.316227766, 0.948683298], "amplitude": 30, "period": 3200, "radius": 12},
     "difficulty": "Découverte",
     "width": 44,
     "reach": 21,

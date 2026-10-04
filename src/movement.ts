@@ -12,7 +12,7 @@ export type MovementState = Readonly<{
 }>;
 
 /** Host owns DOM events and animation frames; movement stays in world coordinates. */
-export function createWorldMovement(world: WorldConfig, spawn: WorldPoint, options: { speed?: number; radius?: number } = {}) {
+export function createWorldMovement(world: WorldConfig, spawn: WorldPoint, options: { speed?: number; radius?: number; canTraverse?: (from: WorldPoint, to: WorldPoint) => boolean } = {}) {
   const speed = options.speed ?? 170, radius = options.radius ?? 7;
   if (!Number.isFinite(speed) || speed <= 0) throw new RangeError("Movement speed must be positive.");
   const navigation = createWorldNavigator(world, radius);
@@ -70,11 +70,13 @@ export function createWorldMovement(world: WorldConfig, spawn: WorldPoint, optio
       }
       if (step > 0 && (dx || dy)) {
         const next = unproject(sx + dx * step, sy + dy * step);
+        // A temporary obstacle blocks this frame while retaining the player's target.
+        if (options.canTraverse && !options.canTraverse(position, next)) return state();
         if (navigation.segmentClear(position, next)) { position = next; walking = true; }
         else if (route.length) stop();
         else if (dx && dy) {
           const slide = [unproject(sx + dx * step, sy), unproject(sx, sy + dy * step)]
-            .find(point => navigation.segmentClear(position, point));
+            .find(point => navigation.segmentClear(position, point) && (!options.canTraverse || options.canTraverse(position, point)));
           if (slide) { position = slide; walking = true; }
         }
         // SVG projection rounds to 0.001 px; absorb that error at each waypoint.

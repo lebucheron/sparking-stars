@@ -18,6 +18,7 @@ export type GameWorldInteraction = Readonly<{
   labelOffset?: number;
 }>;
 export type GameWorldProps = {
+  canTraverse?:(from:WorldPoint,to:WorldPoint)=>boolean;
   clickTarget?:{position:WorldPoint;number:number};
   resetRevision?:number;
   relocate?:()=>WorldPoint|null;
@@ -36,7 +37,7 @@ export type GameWorldProps = {
 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
-export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0,clickTarget }: GameWorldProps) {
+export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0,clickTarget,canTraverse }: GameWorldProps) {
   const resetRequested=useRef<WorldPoint|null>(null);
   const VIEW=useMemo(()=>courseCamera(world),[world]);
   const aspect=VIEW.width/VIEW.height,bufferHeight=Math.round(960/aspect);
@@ -51,8 +52,9 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
   const stick=useRef({x:0,y:0});
   const [touchDevice]=useState(()=>navigator.maxTouchPoints>0||matchMedia('(pointer: coarse)').matches);
   const steer=(x:number,y:number)=>{stick.current={x,y};const m=mover.current;if(!m)return;for(const [key,pressed]of [['ArrowLeft',x<0],['ArrowRight',x>0],['ArrowUp',y<0],['ArrowDown',y>0]] as [string,boolean][])m.setKey(key,pressed);};
-  const live = useRef({ paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate });
-  live.current = { paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate };
+  const live = useRef({ paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate,canTraverse });
+  live.current = { paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate,canTraverse };
+  const movementOptions={canTraverse:(from:WorldPoint,to:WorldPoint)=>live.current.canTraverse?.(from,to)??true};
   const [near, setNear] = useState<string | null>(null), [revision, setRevision] = useState(0);
   const [status, setStatus] = useState("Loading world and Friend artwork…"), [failed, setFailed] = useState(false);
   const [size, setSize] = useState({ width: 960, height: 640 });
@@ -79,7 +81,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     const node = canvas.current, context = node?.getContext("2d");
     if (!node || !context) { setFailed(true); setStatus("This browser cannot render the world."); return; }
     const previousPosition=mover.current?.state.position ?? spawn;
-    const abort = new AbortController();let movement = createWorldMovement(world, previousPosition);
+    const abort = new AbortController();let movement = createWorldMovement(world, previousPosition,movementOptions);
     directClick.current=createDirectClick(world);mover.current = movement; setNear(null); setFailed(false);
     const cached=assetCache.current.get(world),cachedSprite=spriteCache.current?.id===friendId?spriteCache.current.value:null;
     if(!cached||!cachedSprite)setStatus("Loading world and Friend artwork…");
@@ -91,7 +93,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
       if (abort.signal.aborted) return;
       setStatus("");
       const render = (now: number) => {
-        if(resetRequested.current){movement.stop();movement=createWorldMovement(world,resetRequested.current);mover.current=movement;resetRequested.current=null;previous=0;}
+        if(resetRequested.current){movement.stop();movement=createWorldMovement(world,resetRequested.current,movementOptions);mover.current=movement;resetRequested.current=null;previous=0;}
         const delta = !live.current.paused && !document.hidden && previous ? now - previous : 0;
         const held=heldMouse.current;
         if(held?.dirty&&!live.current.paused&&!document.hidden&&now-held.lastAim>=50){const rect=node.getBoundingClientRect();aimAt(unproject(VIEW.x+(held.x-rect.left)*VIEW.width/rect.width,VIEW.y+(held.y-rect.top)*VIEW.height/rect.height));held.dirty=false;held.lastAim=now;}
@@ -101,7 +103,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
         while(budget>0){const slice=Math.min(40,budget);state=movement.update(slice);budget-=slice;}
         previous = now;
         live.current.onStep(state.position, delta);
-        const destination=live.current.relocate?.();if(destination){clearMouseHold();movement.stop();stick.current={x:0,y:0};movement=createWorldMovement(world,destination);mover.current=movement;state=movement.state;}
+        const destination=live.current.relocate?.();if(destination){clearMouseHold();movement.stop();stick.current={x:0,y:0};movement=createWorldMovement(world,destination,movementOptions);mover.current=movement;state=movement.state;}
         context.clearRect(0, 0, VIEW.width, VIEW.height); context.save();
         context.scale(960 / VIEW.width, bufferHeight / VIEW.height); context.translate(-VIEW.x, -VIEW.y); context.imageSmoothingEnabled = false; context.drawImage(assets.terrain, 0, 0);
         live.current.drawTrack(context);
