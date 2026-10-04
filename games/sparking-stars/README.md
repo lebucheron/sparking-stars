@@ -300,3 +300,6 @@ Le build est publié sous /gen6-preview/ pour un essai en entraînement avec un 
 Tests : node server/test-gen6-preview.mjs et node server/test-validation.mjs. Livrable : node scripts/build-sparking-public.mjs ../../outputs/gen6-site.
 Après le retour du joueur, ajuster cette GEN avant de préparer la suivante. Une promotion de la route dans la version principale nécessite la mise à jour cohérente du validateur et des règles du classement.
 
+
+Dernier ajout GEN6 : seconde maison (crate SDK) en [180,318], face à la première en [180,252], pour former un passage sur le retour. Un repère cliquable de 44px apparaît pour la prochaine étoile10 au-dessus du décor. Il vise le sol via createDirectClick ; collecte uniquement à portée, collisions conservées, sans détour automatique. Tests souris/tactile, arrivée et36 simulations physiques passent.
+

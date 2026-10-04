@@ -13,7 +13,13 @@ for(const width of [1000,390])await testGame('games/sparking-stars',{publicHost:
  await game.getByText(track.subtitle,{exact:true}).waitFor();await game.locator('.hud small').filter({hasText:'PISTE EN ESSAI'}).first().waitFor();
  await game.getByRole('button',{name:'Courir',exact:true}).click();assert.equal(await game.getByRole('button',{name:/^Compétition · bêta/}).isDisabled(),true);assert.equal(await game.getByRole('button',{name:/^Course libre/}).isDisabled(),true);await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();
  await page.screenshot({path:`../../outputs/gen6-preview-${width}.png`});await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});
- const canvas=game.locator('canvas[data-x]');for(const p of [...track.route.slice(1),track.route[0]])await walkTo(game,canvas,6,p,width===390);
+ const canvas=game.locator('canvas[data-x]');for(const [i,p] of [...track.route.slice(1),track.route[0]].entries()){
+  if(i===9){
+   const target=game.getByTestId('covered-star-target');await target.waitFor();await page.screenshot({path:`../../outputs/gen6-house-passage-${width}.png`});
+   await target[width===390?'tap':'click']();assert.equal(await game.getByTestId('stars').innerText(),'★ 9/11','Click aims at the star rather than awarding it remotely');
+   await game.getByTestId('stars').filter({hasText:'★ 10/11'}).waitFor();const position=await canvas.evaluate(c=>[Number(c.dataset.x),Number(c.dataset.y)]);assert(Math.hypot(position[0]-p[0],position[1]-p[1])<track.reach,'Friend walks to the occluded star');
+  }else await walkTo(game,canvas,6,p,width===390);
+ }
  await game.locator('.race-card.finished').waitFor();assert.equal(await game.getByTestId('stars').innerText(),'★ 11/11');assert.match(await game.getByTestId('prize').innerText(),/Entraînement sans récompense/);
  await page.screenshot({path:`../../outputs/gen6-preview-arrival-${width}.png`});await game.getByRole('button',{name:'Rejouer',exact:true}).click();await game.locator('.countdown').waitFor();await game.getByRole('button',{name:'Quitter la course',exact:true}).click();await game.getByRole('navigation',{name:'Le paddock'}).waitFor();
  console.log(`PASS GEN6 ${width}px: figure-eight and eleven stars, real completed lap, wide intro track, replay/exit and training-only preview; other five GEN unchanged.`);

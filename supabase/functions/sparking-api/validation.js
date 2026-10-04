@@ -4840,6 +4840,12 @@ var terrains_default = [
         410,
         185,
         1
+      ],
+      [
+        "crate",
+        180,
+        318,
+        1
       ]
     ],
     shape: [
@@ -4922,7 +4928,7 @@ function distanceToRoute(point2, route) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-fbad67324acefafc";
+var RULES = "race-782c61112cf09a12";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

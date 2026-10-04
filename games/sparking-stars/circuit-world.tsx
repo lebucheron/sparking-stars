@@ -18,6 +18,7 @@ export type GameWorldInteraction = Readonly<{
   labelOffset?: number;
 }>;
 export type GameWorldProps = {
+  clickTarget?:{position:WorldPoint;number:number};
   resetRevision?:number;
   relocate?:()=>WorldPoint|null;
   onControl?: (input:'touch'|'mouse'|'pen'|'keyboard')=>void;
@@ -35,7 +36,7 @@ export type GameWorldProps = {
 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
-export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0 }: GameWorldProps) {
+export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0,clickTarget }: GameWorldProps) {
   const resetRequested=useRef<WorldPoint|null>(null);
   const VIEW=useMemo(()=>courseCamera(world),[world]);
   const aspect=VIEW.width/VIEW.height,bufferHeight=Math.round(960/aspect);
@@ -163,6 +164,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     return () => { abort.abort(); cancelAnimationFrame(frame); stop(); window.removeEventListener("blur", stop); document.removeEventListener("visibilitychange", stop); };
   }, [friendId, world, spawn, revision, preloadWorld]);
 
+  const targetScreen=clickTarget?project(...clickTarget.position):null;
   return <div ref={root} className={`rf-world-view${touchDevice&&!paused?" touch-driving":""}`}>
     {touchDevice&&!paused&&!status&&<TouchStick onDirection={steer} onControl={kind=>onControl?.(kind)}/>}
     <div className="rf-world-surface" style={size}>
@@ -185,6 +187,10 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
           const destination=unproject(VIEW.x + (event.clientX - rect.left) * VIEW.width / rect.width, VIEW.y + (event.clientY - rect.top) * VIEW.height / rect.height);
           if(mover.current&&directClick.current){const aim=directClick.current(mover.current.state.position,destination);mover.current.stop();mover.current.moveTo(aim.target);setClickBlocked(aim.blocked);}
         }} />
+      {!status&&!paused&&clickTarget&&targetScreen&&<button type="button" className="star-aim" data-testid="covered-star-target" aria-label={`Viser l’étoile ${clickTarget.number}`}
+        style={{left:`${100*(targetScreen[0]-VIEW.x)/VIEW.width}%`,top:`${100*(targetScreen[1]-VIEW.y)/VIEW.height}%`}}
+        onPointerDown={event=>onControl?.(event.pointerType==='touch'?'touch':event.pointerType==='pen'?'pen':'mouse')}
+        onClick={event=>{if(event.detail===0)onControl?.('keyboard');if(!mover.current||!directClick.current)return;const aim=directClick.current(mover.current.state.position,clickTarget.position);mover.current.stop();mover.current.moveTo(aim.target);setClickBlocked(aim.blocked);canvas.current?.focus({preventScroll:true});}}>★ {clickTarget.number}</button>}
       {!status&&clickBlocked&&!paused&&<p className="click-feedback" role="status">Obstacle : vise un point à côté pour le contourner.</p>}
       {!status && interactions.map(item => { const [x, y] = project(...item.position); return <button type="button" className="rf-world-prompt" key={item.id}
         style={{ left: `${100*(x - VIEW.x) / VIEW.width}%`, top: `${100*(y - VIEW.y + (item.labelOffset ?? 34)) / VIEW.height}%` }} disabled={paused || near !== item.id}
