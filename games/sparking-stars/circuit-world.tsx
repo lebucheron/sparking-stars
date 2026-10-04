@@ -4,7 +4,8 @@ import {createDirectClick} from "./direct-click";
 import type {sampleGhost} from "./ghost";
 import {drawCosmetic,drawTrail,type Trail,type Cosmetic} from "./cosmetics";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {courseCamera} from './course-camera';
 import { loadWorldAssets } from "@rarefriends/friendsdk/assets";
 import { project, unproject, type WorldConfig, type WorldPoint } from "@rarefriends/friendsdk/world";
 import { createWorldMovement } from "@rarefriends/friendsdk/movement";
@@ -30,10 +31,11 @@ export type GameWorldProps = {
   friendId: bigint; world: WorldConfig; spawn: WorldPoint; interactions: readonly GameWorldInteraction[];
   paused?: boolean; reducedMotion?: boolean; onInteract: (id: string) => void;
 };
-const VIEW = { x: 220, y: 265, width: 1160, height: 1160 / 1.5 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
 export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate }: GameWorldProps) {
+  const VIEW=useMemo(()=>courseCamera(world),[world]);
+  const aspect=VIEW.width/VIEW.height,bufferHeight=Math.round(960/aspect);
   const assetCache=useRef(new Map<WorldConfig,Awaited<ReturnType<typeof loadWorldAssets>>>()),spriteCache=useRef<{id:bigint;value:Awaited<ReturnType<ReturnType<typeof createFriendReader>["read"]>>}|null>(null);
   const root = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null);
   const directClick=useRef<ReturnType<typeof createDirectClick>|null>(null);
@@ -54,11 +56,11 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
   useEffect(() => {
     if (!root.current) return;
     const observer = new ResizeObserver(([entry]) => {
-      const width = Math.min(entry.contentRect.width, entry.contentRect.height * (window.matchMedia("(max-height:520px) and (min-width:601px)").matches ? 2.5 : 1.5));
-      setSize({ width, height: width / 1.5 });
+      const width = Math.min(entry.contentRect.width, entry.contentRect.height * aspect);
+      setSize({ width, height: width / aspect });
     });
     observer.observe(root.current); return () => observer.disconnect();
-  }, []);
+  }, [aspect]);
   useEffect(() => { if (paused){stick.current={x:0,y:0};mover.current?.stop();} }, [paused]);
   // Restore keyboard control after artwork loads, a restart, or a runtime menu.
   useEffect(() => {
@@ -89,7 +91,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
         live.current.onStep(state.position, delta);
         const destination=live.current.relocate?.();if(destination){movement.stop();stick.current={x:0,y:0};movement=createWorldMovement(world,destination);mover.current=movement;state=movement.state;}
         context.clearRect(0, 0, VIEW.width, VIEW.height); context.save();
-        context.scale(960 / VIEW.width, 640 / VIEW.height); context.translate(-VIEW.x, -VIEW.y); context.imageSmoothingEnabled = false; context.drawImage(assets.terrain, 0, 0);
+        context.scale(960 / VIEW.width, bufferHeight / VIEW.height); context.translate(-VIEW.x, -VIEW.y); context.imageSmoothingEnabled = false; context.drawImage(assets.terrain, 0, 0);
         live.current.drawTrack(context);
         const [x, y] = project(...state.position);
         const selectedTrail=live.current.trail??"none";
@@ -158,7 +160,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
   return <div ref={root} className={`rf-world-view${touchDevice&&!paused?" touch-driving":""}`}>
     {touchDevice&&!paused&&!status&&<TouchStick onDirection={steer} onControl={kind=>onControl?.(kind)}/>}
     <div className="rf-world-surface" style={size}>
-      <canvas ref={canvas} width={960} height={640} tabIndex={paused || status ? -1 : 0}
+      <canvas ref={canvas} width={960} height={bufferHeight} data-view-x={VIEW.x} data-view-y={VIEW.y} data-view-width={VIEW.width} data-view-height={VIEW.height} tabIndex={paused || status ? -1 : 0}
         aria-label="Circuit Sparking Stars. Flèches ou ZQSD pour marcher. Cliquez ou touchez une destination."
         onBlur={() => mover.current?.stop()}
         onKeyDown={event => {
@@ -179,7 +181,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
         }} />
       {!status&&clickBlocked&&!paused&&<p className="click-feedback" role="status">Obstacle : vise un point à côté pour le contourner.</p>}
       {!status && interactions.map(item => { const [x, y] = project(...item.position); return <button type="button" className="rf-world-prompt" key={item.id}
-        style={{ left: `${(x - VIEW.x) / 9.6}%`, top: `${(y - VIEW.y + (item.labelOffset ?? 34)) / 6.4}%` }} disabled={paused || near !== item.id}
+        style={{ left: `${100*(x - VIEW.x) / VIEW.width}%`, top: `${100*(y - VIEW.y + (item.labelOffset ?? 34)) / VIEW.height}%` }} disabled={paused || near !== item.id}
         onClick={() => onInteract(item.id)}>{item.label}<small>{near === item.id ? "E / tap to interact" : "Walk closer"}</small></button>; })}
     </div>
     {status && <div className="rf-world-loading" role={failed ? "alert" : "status"}><p>{status}</p>{failed && <button type="button" onClick={() => setRevision(value => value + 1)}>Retry artwork</button>}</div>}

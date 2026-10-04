@@ -117,3 +117,15 @@
 
 .halloween-entry{margin-right:8px;background:#514657!important;color:#fff!important;border-color:#514657!important}.halloween-race{background:#eae5e0}.halloween-race .rf-world-view{background:#eae5e0}.halloween-race .race-card{background:#f8f3eb;border-color:#c8bac6}.halloween-race .race-start{background:#514657!important;border-color:#514657!important}.haunted-notice{position:absolute;top:70px;left:50%;transform:translateX(-50%);max-width:calc(100% - 40px);padding:10px 14px;border-radius:10px;background:#514657e8;color:#fff;z-index:4;font:12px/1.5 Arial,sans-serif;text-align:center;pointer-events:none}.halloween-race .race-progress>div{background:#8c6f97}.halloween-race:has(.touch-driving) .race-status{right:12px}.halloween-race:has(.touch-driving) .race-status>span{bottom:145px}@media(max-height:520px){.haunted-notice{top:57px;font-size:11px;padding:5px 10px}}
 .race-focus .sparking:has(.touch-driving) .rf-world-view{bottom:220px}@media(max-height:520px){.race-focus .sparking:has(.touch-driving) .rf-world-view{bottom:175px}}
+/* Landscape keeps the island between thumb controls, using its real aspect ratio. */
+@media(max-height:520px) and (min-width:601px){
+ .race-focus .sparking:has(.touch-driving) .rf-world-view{inset:58px 116px 60px}
+ .sparking:has(.touch-driving) .race-status{left:auto;right:12px;bottom:12px}
+ .sparking:has(.touch-driving) .race-status>span,.halloween-race:has(.touch-driving) .race-status>span{bottom:14px;left:120px;right:145px}
+ .sparking:has(.touch-driving) .race-status small{display:none}
+ .sparking:has(.touch-driving) .pace-label{bottom:36px;left:125px;right:145px;text-align:center}
+ .sparking:has(.touch-driving) .bonus-bar{bottom:66px;right:8px}
+ .sparking:has(.touch-driving) .bonus-bar button:disabled{display:none}
+ .haunted-notice{top:55px;max-width:45%;font-size:10px}
+}
+@media(max-height:520px) and (min-width:601px){.sparking:has(.touch-driving) .race-status{right:64px}.touch-stick{bottom:24px}}

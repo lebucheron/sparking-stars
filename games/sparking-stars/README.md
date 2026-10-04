@@ -276,3 +276,19 @@ une lanterne suggère le détour secret qui brise la boucle. Cette course à pie
 accessible après la vérification habituelle du Friend, ne publie aucun classement,
 ne verse aucune récompense et ne modifie ni quêtes ni fantômes des GEN.
 Tests : server/test-touch-stick.mjs et server/test-halloween.mjs.
+
+## Retours de jeu Halloween et mobile
+
+Le piège Halloween est invisible et déclenche plus tôt. Il ramène au départ,
+remet les étoiles à reprendre et conserve le chrono. La détection sur le segment
+empêche de le sauter à faible cadence ; atteindre l’étoile suivante sans découvrir
+le passage renvoie également au départ. Aucun texte ne donne la solution.
+
+La caméra cadre chaque île dans son rectangle projeté. En paysage tactile,
+l’espace central est libéré entre les commandes ; Recommencer et le plein écran
+restent accessibles séparément. Les coordonnées du pointeur utilisent ce même
+cadrage. Tests Halloween : PC, portrait et paysage 960 × 343 avec espace navigateur.
+Les circuits des six GEN et les règles serveur restent race-6ec93f2d569491df.
+Le retour Halloween forme une petite chicane autour d’un trou ; quelques
+citrouilles et pierres tombales habillent le circuit. Les six étoiles et les
+commandes habituelles sont conservées.
