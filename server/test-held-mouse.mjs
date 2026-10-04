@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {project} from '@rarefriends/friendsdk/world';
 import {testGame} from '../games/sparking-stars/test-profile-helper.mjs';
 await testGame('games/sparking-stars',{publicHost:true,profile:{generation:6,tier:0},width:1000,height:850,check:async({page,game})=>{
- await game.getByRole('button',{name:'Progresser',exact:true}).click();await game.getByRole('button',{name:'Les 6 terrains',exact:true}).click();await game.getByRole('button',{name:/GEN 6 · Découverte/}).click();
+ await game.getByRole('button',{name:'Courir',exact:true}).click();await game.getByRole('button',{name:'Les 6 terrains',exact:true}).click();await game.getByRole('button',{name:/GEN 6 · Découverte/}).click();
  await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});
  const canvas=game.locator('canvas[data-x]');
  const position=()=>canvas.evaluate(c=>[Number(c.dataset.x),Number(c.dataset.y)]);
