@@ -10,7 +10,7 @@ import { GameWorld } from "./circuit-world";
 import "@rarefriends/friendsdk/world-view.css";
 import "./style.css";
 
-import { terrains } from "./terrains";
+import { terrains,startingObstacle } from "./terrains";
 import {distanceToRoute} from "./route-distance";
 import {readFriendProfile} from "./friend-profile";
 import type {Cosmetic,Trail} from "./cosmetics";
@@ -85,7 +85,7 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   const position=useRef<WorldPoint>(spawn);
   const [records,setRecords]=useState<Record<string,number>>({});
 
-  const wall=useMemo(()=>[(route[0][0]+route[1][0])/2,(route[0][1]+route[1][1])/2] as WorldPoint,[route]);
+  const wall=useMemo(()=>startingObstacle(terrain),[route]);
   const world=useMemo(()=>broken?terrain.world:validateWorld({...terrain.world,props:[...terrain.world.props,{type:"crate",x:wall[0],y:wall[1],scale:1,footprint:{x:-12,y:-12,w:24,h:24}}]}),[terrain,wall,broken]);
   function act(a:Action){const result=transact(walletRef.current,a);if(result.ok){walletRef.current=result.wallet;setWallet(result.wallet);}setShopMessage(result.message);return result.ok;}
   function useBonus(){const c=config.current;if(paused||shopping||choosing||modesOpen||boardOpen||publicOpen||!race.current.running||race.current.countdown>0||c.used||c.bonus==="none")return;

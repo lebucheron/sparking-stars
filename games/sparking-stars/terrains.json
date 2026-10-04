@@ -766,74 +766,75 @@
   },
   {
     "name": "Le Jardin",
-    "subtitle": "Une boucle généreuse pour apprendre à courir et choisir tes trajectoires.",
+    "subtitle": "Deux boucles, un croisement : trouve ton rythme dans le Jardin en huit.",
     "difficulty": "Découverte",
     "width": 44,
     "reach": 21,
     "route": [
       [
-        288,
-        315
-      ],
-      [
-        155,
+        150,
         285
       ],
       [
-        90,
-        205
+        85,
+        220
       ],
       [
-        130,
-        120
+        85,
+        140
       ],
       [
-        255,
-        75
+        140,
+        95
       ],
       [
-        390,
-        90
+        195,
+        95
       ],
       [
-        480,
-        160
+        405,
+        285
       ],
       [
-        475,
-        245
+        465,
+        255
       ],
       [
-        395,
-        295
+        495,
+        185
+      ],
+      [
+        465,
+        115
+      ],
+      [
+        405,
+        95
+      ],
+      [
+        195,
+        285
       ]
     ],
     "holes": [],
-    "blocks": [
-      [
-        218,
-        137,
-        140,
-        105
-      ]
-    ],
+    "blocks": [],
     "props": [
       [
         "tree",
-        265,
-        180,
-        0.75
+        145,
+        185,
+        0.6
       ],
       [
         "flower",
-        310,
-        210,
+        160,
+        220,
         1
       ],
       [
         "flower",
-        240,
-        220,
+        410,
+        185,
         1
       ]
     ],
@@ -875,6 +876,10 @@
         160
       ]
     ],
-    "level": 1
+    "level": 1,
+    "startingObstacle": [
+      180,
+      252
+    ]
   }
 ]

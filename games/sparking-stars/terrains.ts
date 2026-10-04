@@ -11,6 +11,10 @@ export const terrains=definitions.map((d,index)=>{
  collision:{blocked:d.blocks.map(([x,y,w,h])=>({x,y,w,h}))}});
  return {...d,route,world,gen:index+1};
 });
+export function startingObstacle(t:typeof terrains[number]):WorldPoint{
+ if(t.startingObstacle)return [t.startingObstacle[0],t.startingObstacle[1]];
+ const [a,b]=t.route;return [(a[0]+b[0])/2,(a[1]+b[1])/2];
+}
 export function distanceToRoute(point:WorldPoint,route:readonly WorldPoint[]){
  return Math.min(...route.map((a,i)=>{const b=route[(i+1)%route.length],dx=b[0]-a[0],dy=b[1]-a[1];
  const t=Math.max(0,Math.min(1,((point[0]-a[0])*dx+(point[1]-a[1])*dy)/(dx*dx+dy*dy)));

@@ -4770,74 +4770,75 @@ var terrains_default = [
   },
   {
     name: "Le Jardin",
-    subtitle: "Une boucle g\xE9n\xE9reuse pour apprendre \xE0 courir et choisir tes trajectoires.",
+    subtitle: "Deux boucles, un croisement : trouve ton rythme dans le Jardin en huit.",
     difficulty: "D\xE9couverte",
     width: 44,
     reach: 21,
     route: [
       [
-        288,
-        315
-      ],
-      [
-        155,
+        150,
         285
       ],
       [
-        90,
-        205
+        85,
+        220
       ],
       [
-        130,
-        120
+        85,
+        140
       ],
       [
-        255,
-        75
+        140,
+        95
       ],
       [
-        390,
-        90
+        195,
+        95
       ],
       [
-        480,
-        160
+        405,
+        285
       ],
       [
-        475,
-        245
+        465,
+        255
       ],
       [
-        395,
-        295
+        495,
+        185
+      ],
+      [
+        465,
+        115
+      ],
+      [
+        405,
+        95
+      ],
+      [
+        195,
+        285
       ]
     ],
     holes: [],
-    blocks: [
-      [
-        218,
-        137,
-        140,
-        105
-      ]
-    ],
+    blocks: [],
     props: [
       [
         "tree",
-        265,
-        180,
-        0.75
+        145,
+        185,
+        0.6
       ],
       [
         "flower",
-        310,
-        210,
+        160,
+        220,
         1
       ],
       [
         "flower",
-        240,
-        220,
+        410,
+        185,
         1
       ]
     ],
@@ -4879,7 +4880,11 @@ var terrains_default = [
         160
       ]
     ],
-    level: 1
+    level: 1,
+    startingObstacle: [
+      180,
+      252
+    ]
   }
 ];
 
@@ -4903,6 +4908,11 @@ var terrains = terrains_default.map((d, index) => {
   });
   return { ...d, route, world, gen: index + 1 };
 });
+function startingObstacle(t) {
+  if (t.startingObstacle) return [t.startingObstacle[0], t.startingObstacle[1]];
+  const [a, b] = t.route;
+  return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+}
 function distanceToRoute(point2, route) {
   return Math.min(...route.map((a, i) => {
     const b = route[(i + 1) % route.length], dx = b[0] - a[0], dy = b[1] - a[1];
@@ -4912,12 +4922,12 @@ function distanceToRoute(point2, route) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-7f4b63b2c7713c3e";
+var RULES = "race-fbad67324acefafc";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {
-  const a = t.route[0], b = t.route[1];
-  return validateWorld({ ...t.world, props: [...t.world.props, { type: "crate", x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, scale: 1, footprint: { x: -12, y: -12, w: 24, h: 24 } }] });
+  const [x, y] = startingObstacle(t);
+  return validateWorld({ ...t.world, props: [...t.world.props, { type: "crate", x, y, scale: 1, footprint: { x: -12, y: -12, w: 24, h: 24 } }] });
 });
 var navigators = worlds.map((w) => createWorldNavigator(w, 7));
 function validateTrace(gen, equipment, trace) {

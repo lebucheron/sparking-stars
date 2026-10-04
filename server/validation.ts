@@ -1,9 +1,9 @@
 
 import {validateWorld,project,isWorldWalkable,type WorldPoint} from '@rarefriends/friendsdk/world';
 import {createWorldNavigator} from '@rarefriends/friendsdk/navigation';
-import {terrains,distanceToRoute} from '../games/sparking-stars/terrains';
+import {terrains,distanceToRoute,startingObstacle} from '../games/sparking-stars/terrains';
 export {RULES} from '../games/sparking-stars/rules-version';
-const worlds=terrains.map(t=>{const a=t.route[0],b=t.route[1];return validateWorld({...t.world,props:[...t.world.props,{type:'crate',x:(a[0]+b[0])/2,y:(a[1]+b[1])/2,scale:1,footprint:{x:-12,y:-12,w:24,h:24}}]});});
+const worlds=terrains.map(t=>{const [x,y]=startingObstacle(t);return validateWorld({...t.world,props:[...t.world.props,{type:'crate',x,y,scale:1,footprint:{x:-12,y:-12,w:24,h:24}}]});});
 const navigators=worlds.map(w=>createWorldNavigator(w,7));
 export function validateTrace(gen:number,equipment:string,trace:unknown):number{
  const reject=()=>{throw new Error('Parcours refusé : trajectoire ou chronométrage incohérent.');};
