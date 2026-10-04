@@ -4334,124 +4334,105 @@ var terrains_default = [
   },
   {
     name: "Les Ruines",
-    subtitle: "Un grand slalom autour des vestiges.",
-    difficulty: "Technique",
-    width: 24,
-    reach: 14,
+    subtitle: "Des courbes, des vestiges et une porte : garde ton \xE9lan dans les Ruines.",
+    difficulty: "Rythme et trajectoires",
+    width: 34,
+    reach: 17,
     route: [
       [
-        288,
+        285,
         325
       ],
       [
-        80,
-        325
+        105,
+        315
       ],
       [
-        75,
-        245
+        85,
+        230
       ],
       [
-        175,
-        245
+        155,
+        180
       ],
       [
-        175,
-        165
+        85,
+        95
       ],
       [
-        75,
-        165
-      ],
-      [
-        75,
+        190,
         65
       ],
       [
-        285,
-        65
+        300,
+        80
       ],
       [
-        285,
-        155
+        340,
+        145
       ],
       [
-        390,
-        155
-      ],
-      [
-        390,
-        65
+        440,
+        90
       ],
       [
         505,
-        65
+        145
       ],
       [
-        505,
-        245
+        490,
+        280
       ],
       [
-        390,
-        245
-      ],
-      [
-        390,
-        325
+        395,
+        315
       ]
     ],
     holes: [
       [
-        220,
-        205,
-        100,
-        65
-      ]
-    ],
-    blocks: [
-      [
+        235,
+        175,
         110,
-        190,
-        28,
-        25
-      ],
-      [
-        215,
-        100,
-        28,
-        25
-      ],
-      [
-        435,
-        190,
-        25,
-        25
+        85
       ]
     ],
+    blocks: [],
     props: [
       [
         "crate",
-        123,
-        202,
-        0.7
+        190,
+        210,
+        0.9
       ],
       [
         "rock",
-        227,
-        112,
+        255,
+        120,
         0.8
       ],
       [
         "crystal",
-        447,
-        202,
-        0.7
+        370,
+        230,
+        0.65
       ],
       [
         "rock",
-        260,
-        290,
-        0.6
+        130,
+        270,
+        0.7
+      ],
+      [
+        "crate",
+        470,
+        210,
+        0.45
+      ],
+      [
+        "crate",
+        526,
+        210,
+        0.45
       ]
     ],
     shape: [
@@ -4488,7 +4469,23 @@ var terrains_default = [
         352
       ]
     ],
-    level: 4
+    level: 4,
+    startingObstacle: [
+      245,
+      285
+    ],
+    sidePaths: [],
+    sideWidths: [],
+    timedGate: {
+      rect: [
+        470,
+        208,
+        56,
+        4
+      ],
+      period: 3600,
+      open: 1800
+    }
   },
   {
     name: "Les Canaux",
@@ -5120,7 +5117,7 @@ function distanceToTrack(point2, t) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-4ef7d10643bd7a25";
+var RULES = "race-a65d9e9b5081257e";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

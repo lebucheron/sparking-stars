@@ -8,7 +8,7 @@ import {testGame} from '../games/sparking-stars/test-profile-helper.mjs';
 import {walkTo} from './test-drive.mjs';
 const definitions=JSON.parse(await readFile('games/sparking-stars/terrains.json','utf8'));
 const baseline=JSON.parse(execFileSync('git',['-c',`safe.directory=${process.cwd().replaceAll('\\','/')}`,'show','2bc31be:games/sparking-stars/terrains.json'],{encoding:'utf8'}));
-assert.deepEqual(definitions.slice(0,3),baseline.slice(0,3));assert.deepEqual(definitions.slice(4),baseline.slice(4),'Approved GEN5/6 preserved');
+assert.deepEqual(definitions.slice(0,2),baseline.slice(0,2));assert.deepEqual(definitions.slice(4),baseline.slice(4),'Approved GEN5/6 preserved');
 const track=definitions[3];assert.deepEqual(track.shape,baseline[3].shape);assert.equal(track.route.length,13);assert.equal(track.holes.length,2);assert.equal(track.sidePaths.length,0);
 const result=await build({entryPoints:['games/sparking-stars/terrains.ts'],bundle:true,platform:'node',format:'esm',write:false});
 const {terrains,distanceToTrack}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64')),t=terrains[3],nav=createWorldNavigator(t.world,7);
@@ -16,9 +16,10 @@ for(const [i,path]of t.sidePaths.entries())for(const [j,p]of path.entries()){
  assert(isWorldWalkable(t.world,p,7),`Branch ${i} waypoint ${j}`);assert(distanceToTrack(p,t)<=t.width/2);if(j)assert(nav.segmentClear(path[j-1],p),`Branch ${i} segment ${j}`);
 }
 assert.equal(isWorldWalkable(t.world,[190,145],7),false,'Canal water is an actual gap');assert.equal(isWorldWalkable(t.world,[275,178],7),true,'Single bridge remains walkable');
-for(const width of [1000,390])await testGame('games/sparking-stars',{publicHost:true,profile:{generation:6,tier:0},width,height:width===390?844:850,timeout:20000,beforeOpen:async({page})=>{
+for(const width of [1000,390])await testGame('games/sparking-stars',{publicHost:true,profile:{generation:4,tier:0},width,height:width===390?844:850,timeout:20000,beforeOpen:async({page})=>{
  await page.route('https://hkudnvqseodizcplkgvw.supabase.co/**',()=>{throw Error('Preview must not contact competitive backend');});
 },check:async({page,game})=>{
+ await game.getByRole('button',{name:'Courir',exact:true}).click();await game.getByRole('button',{name:'Les 6 terrains',exact:true}).click();await game.getByRole('button',{name:/GEN 4 · Ponts et trajectoires/}).click();
  await game.getByText(track.subtitle,{exact:true}).waitFor();await game.getByRole('button',{name:'Courir',exact:true}).click();assert(await game.getByRole('button',{name:/^Compétition · bêta/}).isDisabled());await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});
  const canvas=game.locator('canvas[data-x]');await page.screenshot({path:`../../outputs/gen4-preview-${width}.png`});
  for(const [i,p]of [...track.route.slice(1),track.route[0]].entries()){

@@ -5,7 +5,7 @@ import {testGame} from '../games/sparking-stars/test-profile-helper.mjs';
 import {walkTo} from './test-drive.mjs';
 const definitions=JSON.parse(await readFile('games/sparking-stars/terrains.json','utf8'));
 const baseline=JSON.parse(execFileSync('git',['-c',`safe.directory=${process.cwd().replaceAll('\\','/')}`,'show','c5f2e12:games/sparking-stars/terrains.json'],{encoding:'utf8'}));
-assert.deepEqual(definitions.slice(0,3),baseline.slice(0,3));assert.deepEqual(definitions[5],baseline[5],'Approved GEN6 is preserved');
+assert.deepEqual(definitions.slice(0,2),baseline.slice(0,2));assert.deepEqual(definitions[5],baseline[5],'Approved GEN6 is preserved');
 const track=definitions[4];assert.deepEqual(track.shape,baseline[4].shape,'Original island surface preserved');assert.equal(track.route.length,15);
 assert.deepEqual(track.route[12],[475,175]);assert(track.props.some(p=>p[0]==='rock'&&p[1]===465&&p[2]===230));assert.equal(track.sidePaths.length,4);
 for(const width of [1000,390])await testGame('games/sparking-stars',{publicHost:true,profile:{generation:5,tier:0},width,height:width===390?844:850,timeout:20000,beforeOpen:async({page})=>{
