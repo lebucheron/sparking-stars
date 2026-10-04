@@ -4623,8 +4623,8 @@ var terrains_default = [
   },
   {
     name: "La Carri\xE8re",
-    subtitle: "Contourne les rochers et n\xE9gocie les \xE9pingles.",
-    difficulty: "Virages",
+    subtitle: "Un d\xE9fil\xE9 entre les rochers, une chicane et deux \xE9pingles : garde le rythme.",
+    difficulty: "Trajectoires",
     width: 32,
     reach: 17,
     route: [
@@ -4633,83 +4633,119 @@ var terrains_default = [
         320
       ],
       [
-        140,
-        310
+        155,
+        320
       ],
       [
-        90,
-        230
+        100,
+        270
       ],
       [
-        165,
-        190
+        100,
+        220
       ],
       [
-        90,
-        100
+        100,
+        170
       ],
       [
-        220,
+        155,
+        135
+      ],
+      [
+        105,
+        95
+      ],
+      [
+        175,
         65
       ],
       [
-        295,
-        110
+        275,
+        70
+      ],
+      [
+        315,
+        135
       ],
       [
         385,
-        65
+        75
       ],
       [
         485,
-        110
+        115
       ],
       [
-        445,
-        195
+        465,
+        230
       ],
       [
         500,
-        275
+        280
       ],
       [
-        405,
-        315
+        395,
+        320
       ]
     ],
     holes: [],
     blocks: [
       [
         220,
-        155,
-        145,
-        95
+        170,
+        140,
+        90
       ]
     ],
     props: [
       [
         "rock",
-        235,
-        174,
-        1
+        65,
+        195,
+        0.8
       ],
       [
         "rock",
-        330,
-        205,
-        1.5
+        133,
+        195,
+        0.8
+      ],
+      [
+        "rock",
+        240,
+        190,
+        1.1
+      ],
+      [
+        "rock",
+        320,
+        230,
+        1.3
       ],
       [
         "crystal",
         280,
-        230,
+        205,
         0.7
       ],
       [
         "rock",
-        380,
-        170,
+        475,
+        175,
+        1
+      ],
+      [
+        "rock",
+        438,
+        270,
         0.8
+      ],
+      [
+        "crystal",
+        365,
+        115,
+        0.5
       ]
     ],
     shape: [
@@ -4766,12 +4802,28 @@ var terrains_default = [
         110
       ]
     ],
-    level: 2
+    level: 2,
+    startingObstacle: [
+      228,
+      290
+    ]
   },
   {
     name: "Le Jardin",
     subtitle: "Deux boucles, un croisement et un Jardin qui ne tient pas en place.",
-    movingBush: { center: [435, 105], direction: [-0.316227766, 0.948683298], amplitude: 30, period: 3200, radius: 12 },
+    movingBush: {
+      center: [
+        435,
+        105
+      ],
+      direction: [
+        -0.316227766,
+        0.948683298
+      ],
+      amplitude: 30,
+      period: 3200,
+      radius: 12
+    },
     difficulty: "D\xE9couverte",
     width: 44,
     reach: 21,
@@ -4929,7 +4981,7 @@ function distanceToRoute(point2, route) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-2af4e29ef855e98a";
+var RULES = "race-d0dcd104ab2e5a90";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {
