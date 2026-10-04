@@ -3,6 +3,7 @@ import {TRACK_PREVIEW,PREVIEW_GENERATION} from './track-preview';
 import {bushAllows,drawMovingBush} from './moving-bush';
 import {rubyAllows,rubyState,drawMovingRuby} from './moving-ruby';
 import {drawRoadNetwork} from './road-network';
+import {bridgeVisible,drawHiddenBridge} from './hidden-bridge';
 import {emptyHalloween} from './halloween-reward';
 import { useEffect, useRef, useState, useMemo } from "react";
 import type { GameComponentProps } from "@rarefriends/friendsdk/runtime";
@@ -154,16 +155,17 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
     ctx.strokeStyle="#000000";ctx.lineWidth=terrain.width+6;ctx.stroke();ctx.strokeStyle="#ffffff";ctx.lineWidth=terrain.width;ctx.stroke();
     ctx.setLineDash([7,10]);ctx.lineWidth=2;ctx.strokeStyle="#000000";ctx.stroke();ctx.setLineDash([]);
     }
+    const showBridge=bridgeVisible(terrain.hiddenBridge,r.elapsed);drawHiddenBridge(ctx,terrain.hiddenBridge,r.elapsed);
     const [fx,fy]=project(...spawn);
     for(let row=0;row<2;row++)for(let col=0;col<6;col++){ctx.fillStyle=(row+col)%2?"#fff":"#000000";ctx.fillRect(fx-24+col*8,fy-8+row*8,8,8);}
     ctx.font="bold 13px monospace";ctx.textAlign="center";ctx.fillStyle="#000000";ctx.fillText("DÉPART / ARRIVÉE",fx,fy+30);
-    route.forEach((p,i)=>{if(i===0)return;const [x,y]=project(...p);const collected=r.next>i,active=r.next===i;
+    route.forEach((p,i)=>{if(i===0||(!showBridge&&i===terrain.hiddenBridge?.star))return;const [x,y]=project(...p);const collected=r.next>i,active=r.next===i;
       ctx.beginPath();ctx.ellipse(x,y,active?22:16,active?10:7,0,0,Math.PI*2);ctx.fillStyle=collected?"#ffffff":active?"#ffffff":"#ffffff";ctx.fill();ctx.strokeStyle="#000000";ctx.lineWidth=2;ctx.stroke();
       ctx.font=active?"bold 29px monospace":"23px monospace";ctx.fillStyle=collected?"#000000":"#000000";ctx.fillText(collected?"✓":"★",x,y-10);
       ctx.font="bold 11px monospace";ctx.fillText(String(i),x,y+4);
     });
     if(r.next===route.length){ctx.fillStyle="#ffffff";ctx.beginPath();ctx.arc(fx,fy-24,15,0,Math.PI*2);ctx.fill();ctx.fillStyle="#000000";ctx.font="bold 24px monospace";ctx.fillText("★",fx,fy-17);}
-    if(r.running){
+    if(r.running&&(showBridge||r.next!==terrain.hiddenBridge?.star)){
       const target=route[r.next%route.length], [tx,ty]=project(...target), [px,py]=project(...position.current);
       ctx.setLineDash([3,8]);ctx.strokeStyle="#000";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(tx,ty);ctx.stroke();ctx.setLineDash([]);
       ctx.fillStyle="#000";ctx.beginPath();ctx.moveTo(tx,ty-45);ctx.lineTo(tx-8,ty-58);ctx.lineTo(tx+8,ty-58);ctx.closePath();ctx.fill();

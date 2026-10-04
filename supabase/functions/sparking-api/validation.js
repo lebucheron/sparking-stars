@@ -4492,7 +4492,7 @@ var terrains_default = [
   },
   {
     name: "Les Canaux",
-    subtitle: "Deux canaux, deux ponts : coupe au plus court ou prends le large.",
+    subtitle: "Un bassin, un pont et quelques rochers : trouve ton rythme.",
     difficulty: "Ponts et trajectoires",
     width: 27,
     reach: 15,
@@ -4503,23 +4503,31 @@ var terrains_default = [
       ],
       [
         110,
-        320
+        310
       ],
       [
         85,
-        198
+        178
       ],
       [
         275,
-        218
+        178
       ],
       [
-        275,
-        85
+        465,
+        178
+      ],
+      [
+        485,
+        90
+      ],
+      [
+        390,
+        65
       ],
       [
         180,
-        70
+        65
       ],
       [
         90,
@@ -4534,85 +4542,53 @@ var terrains_default = [
         295
       ],
       [
-        480,
+        490,
         300
       ],
       [
-        490,
-        187
-      ],
-      [
-        300,
-        187
-      ],
-      [
-        300,
-        65
-      ],
-      [
-        460,
-        65
-      ],
-      [
         510,
-        95
-      ],
-      [
-        510,
-        280
+        250
       ]
     ],
     holes: [
       [
-        135,
+        145,
         125,
-        110,
-        60
+        260,
+        35
       ],
       [
-        135,
-        211,
-        110,
-        54
-      ],
-      [
-        325,
-        125,
-        100,
-        50
-      ],
-      [
-        325,
-        199,
-        100,
-        66
+        145,
+        196,
+        260,
+        55
       ]
     ],
     blocks: [],
     props: [
       [
         "reeds",
-        125,
-        285,
-        0.6
-      ],
-      [
-        "buoy",
-        435,
-        145,
+        120,
+        270,
         0.5
       ],
       [
-        "reeds",
-        255,
-        240,
-        0.45
+        "buoy",
+        430,
+        135,
+        0.6
       ],
       [
-        "bench",
-        320,
-        325,
-        0.55
+        "rock",
+        110,
+        125,
+        0.75
+      ],
+      [
+        "rock",
+        435,
+        310,
+        0.75
       ]
     ],
     shape: [
@@ -4644,80 +4620,21 @@ var terrains_default = [
     level: 3,
     startingObstacle: [
       245,
-      300
+      265
     ],
-    forkSegments: [
-      3,
-      11
-    ],
-    sidePaths: [
-      [
-        [
-          85,
-          198
-        ],
-        [
-          275,
-          198
-        ],
-        [
-          275,
-          218
-        ]
-      ],
-      [
-        [
-          85,
-          198
-        ],
-        [
-          85,
-          85
-        ],
-        [
-          275,
-          85
-        ],
-        [
-          275,
-          218
-        ]
-      ],
-      [
-        [
-          490,
-          187
-        ],
-        [
-          300,
-          187
-        ]
-      ],
-      [
-        [
-          490,
-          187
-        ],
-        [
-          480,
-          300
-        ],
-        [
-          285,
-          295
-        ],
-        [
-          300,
-          187
-        ]
+    sidePaths: [],
+    sideWidths: [],
+    hiddenBridge: {
+      star: 3,
+      period: 4e3,
+      visible: 2300,
+      basin: [
+        145,
+        125,
+        260,
+        126
       ]
-    ],
-    sideWidths: [
-      22,
-      30,
-      22,
-      32
-    ]
+    }
   },
   {
     name: "La Carri\xE8re",
@@ -5203,7 +5120,7 @@ function distanceToTrack(point2, t) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-cbe98c663373fcd9";
+var RULES = "race-4ef7d10643bd7a25";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {
