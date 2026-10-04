@@ -22,6 +22,7 @@ for(const dt of [16.667,90]){
  assert(blockedSteps>0,'The moving shrub actually blocks the attempted crossing');assert.equal(m.state.destination,null,'Waiting at the shrub eventually completes the crossing');
 }
 await testGame('games/sparking-stars',{publicHost:true,profile:{generation:6,tier:0},width:1000,height:850,check:async({page,game})=>{
+ await game.getByRole('button',{name:'Les 6 terrains',exact:true}).click();await game.getByRole('button',{name:/GEN 6 · Découverte/}).click();
  await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});const canvas=game.locator('canvas[data-x]');
  const first=Number(await canvas.getAttribute('data-bush-y'));await page.waitForTimeout(500);assert(Math.abs(Number(await canvas.getAttribute('data-bush-y'))-first)>3,'The shrub visibly moves during the race');
  for(const p of track.route.slice(1,9))await walkTo(game,canvas,6,p);await page.screenshot({path:'../../outputs/gen6-moving-bush.png'});await walkTo(game,canvas,6,to);assert.match(await game.getByTestId('stars').innerText(),/9\/11/,'Passing the shrub still collects the next star');

@@ -4623,7 +4623,7 @@ var terrains_default = [
   },
   {
     name: "La Carri\xE8re",
-    subtitle: "Un d\xE9fil\xE9 entre les rochers, une chicane et deux \xE9pingles : garde le rythme.",
+    subtitle: "Choisis tes passages autour des rochers et du rubis, puis n\xE9gocie les \xE9pingles.",
     difficulty: "Trajectoires",
     width: 32,
     reach: 17,
@@ -4677,8 +4677,8 @@ var terrains_default = [
         115
       ],
       [
-        465,
-        230
+        475,
+        175
       ],
       [
         500,
@@ -4724,22 +4724,16 @@ var terrains_default = [
         1.3
       ],
       [
-        "crystal",
-        280,
-        205,
-        0.7
-      ],
-      [
         "rock",
-        475,
-        175,
+        465,
+        230,
         1
       ],
       [
         "rock",
-        438,
-        270,
-        0.8
+        405,
+        285,
+        0.65
       ],
       [
         "crystal",
@@ -4806,7 +4800,133 @@ var terrains_default = [
     startingObstacle: [
       228,
       290
-    ]
+    ],
+    sidePaths: [
+      [
+        [
+          475,
+          175
+        ],
+        [
+          475,
+          195
+        ],
+        [
+          427,
+          195
+        ],
+        [
+          427,
+          260
+        ],
+        [
+          490,
+          267
+        ],
+        [
+          500,
+          280
+        ]
+      ],
+      [
+        [
+          475,
+          175
+        ],
+        [
+          475,
+          195
+        ],
+        [
+          505,
+          195
+        ],
+        [
+          505,
+          260
+        ],
+        [
+          490,
+          267
+        ],
+        [
+          500,
+          280
+        ]
+      ],
+      [
+        [
+          315,
+          135
+        ],
+        [
+          325,
+          85
+        ],
+        [
+          345,
+          75
+        ],
+        [
+          385,
+          75
+        ]
+      ],
+      [
+        [
+          315,
+          135
+        ],
+        [
+          335,
+          150
+        ],
+        [
+          402,
+          150
+        ],
+        [
+          402,
+          95
+        ],
+        [
+          385,
+          75
+        ]
+      ]
+    ],
+    forkSegments: [
+      10,
+      13
+    ],
+    sideWidths: [
+      28,
+      22,
+      22,
+      32
+    ],
+    movingRuby: {
+      home: [
+        280,
+        205
+      ],
+      spots: [
+        [
+          100,
+          245
+        ],
+        [
+          235,
+          70
+        ],
+        [
+          350,
+          320
+        ]
+      ],
+      rest: 2600,
+      visit: 1600
+    }
   },
   {
     name: "Le Jardin",
@@ -4960,7 +5080,7 @@ var terrains = terrains_default.map((d, index) => {
     signals: [],
     missingChunks: [],
     geometry: { polygons: [d.shape], holes, depth: 18 + (d.level - 1) * 3 },
-    paths: [{ points: [...route, route[0]], width: d.width }],
+    paths: [{ points: [...route, route[0]], width: d.width }, ...(d.sidePaths ?? []).map((points, i) => ({ points: points.map(([x, y]) => [x, y]), width: d.sideWidths?.[i] ?? 22 }))],
     patches: [],
     props: d.props.map(([type, x, y, scale]) => ({ type, x: Number(x), y: Number(y), scale: Number(scale) })),
     collision: { blocked: d.blocks.map(([x, y, w, h]) => ({ x, y, w, h })) }
@@ -4979,9 +5099,12 @@ function distanceToRoute(point2, route) {
     return Math.hypot(point2[0] - a[0] - t * dx, point2[1] - a[1] - t * dy);
   }));
 }
+function distanceToTrack(point2, t) {
+  return Math.min(distanceToRoute(point2, t.route), ...(t.sidePaths ?? []).map((path, i) => distanceToRoute(point2, path.map(([x, y]) => [x, y])) + t.width / 2 - (t.sideWidths?.[i] ?? 22) / 2));
+}
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-d0dcd104ab2e5a90";
+var RULES = "race-9ec6d01c9fc8e8aa";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {
@@ -5007,7 +5130,7 @@ function validateTrace(gen, equipment, trace) {
     const delta = time - last;
     if (delta <= 0 || time > 6e5 || !isWorldWalkable(world, point2, 7) || !nav.segmentClear(previous, point2)) return reject();
     const [ax, ay] = project(...previous), [bx, by] = project(x, y);
-    const road = distanceToRoute(previous, t.route) > t.width / 2 ? Math.max(0.38, 0.8 - (t.level - 1) * 0.08) : 1;
+    const road = distanceToTrack(previous, t) > t.width / 2 ? Math.max(0.38, 0.8 - (t.level - 1) * 0.08) : 1;
     if (Math.hypot(bx - ax, by - ay) > 170 * 1e-3 * Math.min(100, delta) * pace * road * 1.005 + 2e-3) return reject();
     const target = t.route[next % t.route.length];
     if (Math.hypot(x - target[0], y - target[1]) < t.reach) next++;

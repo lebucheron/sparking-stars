@@ -1,7 +1,7 @@
 
 import {validateWorld,project,isWorldWalkable,type WorldPoint} from '@rarefriends/friendsdk/world';
 import {createWorldNavigator} from '@rarefriends/friendsdk/navigation';
-import {terrains,distanceToRoute,startingObstacle} from '../games/sparking-stars/terrains';
+import {terrains,distanceToTrack,startingObstacle} from '../games/sparking-stars/terrains';
 export {RULES} from '../games/sparking-stars/rules-version';
 const worlds=terrains.map(t=>{const [x,y]=startingObstacle(t);return validateWorld({...t.world,props:[...t.world.props,{type:'crate',x,y,scale:1,footprint:{x:-12,y:-12,w:24,h:24}}]});});
 const navigators=worlds.map(w=>createWorldNavigator(w,7));
@@ -16,7 +16,7 @@ export function validateTrace(gen:number,equipment:string,trace:unknown):number{
   if(i===0){if(time!==0||Math.hypot(x-previous[0],y-previous[1])>.001)return reject();continue;}
   const delta=time-last;if(delta<=0||time>600000||!isWorldWalkable(world,point,7)||!nav.segmentClear(previous,point))return reject();
   const [ax,ay]=project(...previous),[bx,by]=project(x,y);
-  const road=distanceToRoute(previous,t.route)>t.width/2?Math.max(.38,.8-(t.level-1)*.08):1;
+  const road=distanceToTrack(previous,t)>t.width/2?Math.max(.38,.8-(t.level-1)*.08):1;
   if(Math.hypot(bx-ax,by-ay)>170*.001*Math.min(100,delta)*pace*road*1.005+.002)return reject();
   const target=t.route[next%t.route.length];
   if(Math.hypot(x-target[0],y-target[1])<t.reach)next++;

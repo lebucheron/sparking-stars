@@ -12,6 +12,7 @@ const track=definitions[5];assert.equal(track.route.length,11);assert.deepEqual(
 for(const width of [1000,390])await testGame('games/sparking-stars',{publicHost:true,profile:{generation:6,tier:0},width,height:width===390?844:850,timeout:20000,beforeOpen:async({page})=>{
  await page.route('https://hkudnvqseodizcplkgvw.supabase.co/**',()=>{throw Error('Training preview must not contact ranking backend');});
 },check:async({page,game})=>{
+ await game.getByRole('button',{name:'Les 6 terrains',exact:true}).click();await game.getByRole('button',{name:/GEN 6 · Découverte/}).click();
  await game.getByText(track.subtitle,{exact:true}).waitFor();await game.locator('.hud small').filter({hasText:'PISTE EN ESSAI'}).first().waitFor();
  await game.getByRole('button',{name:'Courir',exact:true}).click();assert.equal(await game.getByRole('button',{name:/^Compétition · bêta/}).isDisabled(),true);assert.equal(await game.getByRole('button',{name:/^Course libre/}).isDisabled(),true);await game.getByRole('button',{name:'Retour à la piste',exact:true}).click();
  await page.screenshot({path:`../../outputs/gen6-preview-${width}.png`});await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});

@@ -18,6 +18,7 @@ export type GameWorldInteraction = Readonly<{
   labelOffset?: number;
 }>;
 export type GameWorldProps = {
+  dynamicObjects?:()=>{position:WorldPoint;draw:(ctx:CanvasRenderingContext2D)=>void}[];
   canTraverse?:(from:WorldPoint,to:WorldPoint)=>boolean;
   clickTarget?:{position:WorldPoint;number:number};
   resetRevision?:number;
@@ -37,7 +38,7 @@ export type GameWorldProps = {
 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
-export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0,clickTarget,canTraverse }: GameWorldProps) {
+export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0,clickTarget,canTraverse,dynamicObjects }: GameWorldProps) {
   const resetRequested=useRef<WorldPoint|null>(null);
   const VIEW=useMemo(()=>courseCamera(world),[world]);
   const aspect=VIEW.width/VIEW.height,bufferHeight=Math.round(960/aspect);
@@ -52,8 +53,8 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
   const stick=useRef({x:0,y:0});
   const [touchDevice]=useState(()=>navigator.maxTouchPoints>0||matchMedia('(pointer: coarse)').matches);
   const steer=(x:number,y:number)=>{stick.current={x,y};const m=mover.current;if(!m)return;for(const [key,pressed]of [['ArrowLeft',x<0],['ArrowRight',x>0],['ArrowUp',y<0],['ArrowDown',y>0]] as [string,boolean][])m.setKey(key,pressed);};
-  const live = useRef({ paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate,canTraverse });
-  live.current = { paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate,canTraverse };
+  const live = useRef({ paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate,canTraverse,dynamicObjects });
+  live.current = { paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate,canTraverse,dynamicObjects };
   const movementOptions={canTraverse:(from:WorldPoint,to:WorldPoint)=>live.current.canTraverse?.(from,to)??true};
   const [near, setNear] = useState<string | null>(null), [revision, setRevision] = useState(0);
   const [status, setStatus] = useState("Loading world and Friend artwork…"), [failed, setFailed] = useState(false);
@@ -116,6 +117,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
         }
         for(const p of particles)drawTrail(context,selectedTrail,p.x,p.y,2+4*p.life/650);
         const layers = assets.objects.map(object => ({ depth: object.depth, draw: () => context.drawImage(object.image, 0, 0) }));
+        for(const object of live.current.dynamicObjects?.()??[])layers.push({depth:object.position[0]+object.position[1],draw:()=>object.draw(context)});
         const replay=live.current.ghost?.();node.dataset.ghost=replay?"visible":"hidden";
         if(replay){const [gx,gy]=project(...replay.position),[px,py]=project(...replay.previous),dx=gx-px,dy=gy-py;
           node.dataset.ghostX=String(replay.position[0]);node.dataset.ghostY=String(replay.position[1]);node.dataset.ghostTime=String(replay.time);
