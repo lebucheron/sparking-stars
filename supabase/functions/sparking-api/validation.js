@@ -4770,42 +4770,46 @@ var terrains_default = [
   },
   {
     name: "Le Jardin",
-    subtitle: "Une boucle douce pour prendre tes marques.",
+    subtitle: "Une boucle g\xE9n\xE9reuse pour apprendre \xE0 courir et choisir tes trajectoires.",
     difficulty: "D\xE9couverte",
-    width: 38,
-    reach: 19,
+    width: 44,
+    reach: 21,
     route: [
       [
         288,
-        312
+        315
       ],
       [
-        146,
-        277
+        155,
+        285
       ],
       [
-        88,
-        192
+        90,
+        205
       ],
       [
-        146,
-        107
+        130,
+        120
       ],
       [
-        288,
-        72
+        255,
+        75
       ],
       [
-        430,
-        107
+        390,
+        90
       ],
       [
-        488,
-        192
+        480,
+        160
       ],
       [
-        430,
-        277
+        475,
+        245
+      ],
+      [
+        395,
+        295
       ]
     ],
     holes: [],
@@ -4908,7 +4912,7 @@ function distanceToRoute(point2, route) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-6ec93f2d569491df";
+var RULES = "race-7f4b63b2c7713c3e";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

@@ -14,6 +14,7 @@ import {questStore} from './quest-store';
 import {halloweenStore} from './halloween-store';
 import {personalGhostStore} from './ghost-store';
 import {RULES} from '../games/sparking-stars/rules-version';
+import {TRACK_PREVIEW} from '../games/sparking-stars/track-preview';
 import definitionJson from '../games/sparking-stars/game.json';
 const definition=parseChanceGame(definitionJson);
 const API='https://hkudnvqseodizcplkgvw.supabase.co/functions/v1/sparking-api';
@@ -51,6 +52,8 @@ function App(){
    const port=e.ports[0],r=revision,{action,payload}=e.data;
    try{
     if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator','ghost','quests','focus','halloween'].includes(action))throw new Error('Action refusée.');
+    if(TRACK_PREVIEW&&['start','finish'].includes(action))throw Error('Cette piste en essai se joue en entraînement.');
+    if(TRACK_PREVIEW&&['creator','board'].includes(action)){port.postMessage({rules:RULES,controls:payload.controls,ms:null,rows:[]});return;}
     if(action==='focus'){if(typeof payload.active!=='boolean')throw Error('Vue incorrecte.');setCinema(payload.active);if(!payload.active&&document.fullscreenElement)void document.exitFullscreen().catch(()=>{});port.postMessage({ok:true});return;}
     if(action==='context'){if(payload.needed===false)setAuthNeeded(false);port.postMessage({ok:true});return;}
     if(action==='prepare'){
@@ -115,7 +118,7 @@ function App(){
   }catch(e){setNotice(e instanceof Error?e.message:'Connexion refusée.');}finally{setWorking(false);}
  }
  return <section className={`paddock-window${cinema?" race-focus":""}`} aria-label="Sparking Stars — le paddock">
-  <header className="paddock-titlebar"><div className="paddock-brand"><span className="paddock-mark" aria-hidden="true">✦</span><div><strong>SPARKING STARS</strong><small>RARE FRIENDS · RACE CLUB</small></div></div><div className="paddock-window-actions"><DemoRecorder/><span className="season-tag">01 / CONSTELLATIONS</span></div></header>
+  <header className="paddock-titlebar"><div className="paddock-brand"><span className="paddock-mark" aria-hidden="true">✦</span><div><strong>SPARKING STARS</strong><small>RARE FRIENDS · RACE CLUB</small></div></div><div className="paddock-window-actions"><DemoRecorder/><span className="season-tag">{TRACK_PREVIEW?"GEN 6 / EN ESSAI":"01 / CONSTELLATIONS"}</span></div></header>
   {!injected&&!hasFriend&&<p className="wallet-connect-hint">Avec « Connect wallet », autorise MetaMask puis reviens ici pour jouer dans ce navigateur.</p>}
   {authNeeded&&<div className="connection-overlay"><aside className="paddock-connection" role="dialog" aria-modal="true" aria-label="Connexion au classement"><h2>Connexion gratuite</h2><span className="connection-note" role="status">{notice}</span><p>Confirme la signature dans MetaMask. Aucun paiement ni transaction. Cette connexion fonctionne aussi pour ta collection.</p><button autoFocus disabled={working} onClick={login}>{working?'Connexion en cours…':'Activer le classement'}</button><button disabled={working} onClick={()=>setAuthNeeded(false)} aria-label="Fermer la demande de connexion">Plus tard</button></aside></div>}
   <div className="paddock-stage"><GameHost definition={definition} frameUrl="./game.html" walletProvider={provider}/></div>

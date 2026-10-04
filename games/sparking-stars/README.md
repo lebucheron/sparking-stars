@@ -292,3 +292,11 @@ Les circuits des six GEN et les règles serveur restent race-6ec93f2d569491df.
 Le retour Halloween forme une petite chicane autour d’un trou ; quelques
 citrouilles et pierres tombales habillent le circuit. Les six étoiles et les
 commandes habituelles sont conservées.
+
+## Essai joueur GEN 6 (octobre 2026)
+La branche feature/gen6-preview reprend la version publique du 4 octobre.
+Seule la route du Jardin GEN 6 est remaniée : neuf étoiles, largeur 44, rayon de collecte 21 et boucle asymétrique. Les GEN 1 à 5 conservent leurs définitions.
+Le build est publié sous /gen6-preview/ pour un essai en entraînement avec un vrai Friend GEN 6. TRACK_PREVIEW bloque course libre, départs et soumissions classés ; le serveur Supabase public n'est pas modifié.
+Tests : node server/test-gen6-preview.mjs et node server/test-validation.mjs. Livrable : node scripts/build-sparking-public.mjs ../../outputs/gen6-site.
+Après le retour du joueur, ajuster cette GEN avant de préparer la suivante. Une promotion de la route dans la version principale nécessite la mise à jour cohérente du validateur et des règles du classement.
+
