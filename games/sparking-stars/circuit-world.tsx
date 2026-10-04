@@ -45,6 +45,9 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
   const directClick=useRef<ReturnType<typeof createDirectClick>|null>(null);
   const [clickBlocked,setClickBlocked]=useState(false);
   const mover = useRef<ReturnType<typeof createWorldMovement> | null>(null);
+  const heldMouse=useRef<{id:number;started:number;clientX:number;clientY:number;x:number;y:number;dragged:boolean;dirty:boolean;lastAim:number}|null>(null);
+  const clearMouseHold=()=>{const held=heldMouse.current;heldMouse.current=null;const node=canvas.current;if(held&&node?.hasPointerCapture(held.id))node.releasePointerCapture(held.id);};
+  const aimAt=(destination:WorldPoint)=>{if(!mover.current||!directClick.current)return;const aim=directClick.current(mover.current.state.position,destination);mover.current.stop();mover.current.moveTo(aim.target);setClickBlocked(aim.blocked);};
   const stick=useRef({x:0,y:0});
   const [touchDevice]=useState(()=>navigator.maxTouchPoints>0||matchMedia('(pointer: coarse)').matches);
   const steer=(x:number,y:number)=>{stick.current={x,y};const m=mover.current;if(!m)return;for(const [key,pressed]of [['ArrowLeft',x<0],['ArrowRight',x>0],['ArrowUp',y<0],['ArrowDown',y>0]] as [string,boolean][])m.setKey(key,pressed);};
@@ -65,9 +68,9 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     });
     observer.observe(root.current); return () => observer.disconnect();
   }, [aspect]);
-  useEffect(() => { if (paused){stick.current={x:0,y:0};mover.current?.stop();} }, [paused]);
+  useEffect(() => { if (paused){clearMouseHold();stick.current={x:0,y:0};mover.current?.stop();} }, [paused]);
   // Restart only movement; keep the loaded terrain and canonical artwork alive.
-  useEffect(()=>{resetRequested.current=spawn;stick.current={x:0,y:0};mover.current?.stop();setClickBlocked(false);},[resetRevision,spawn]);
+  useEffect(()=>{clearMouseHold();resetRequested.current=spawn;stick.current={x:0,y:0};mover.current?.stop();setClickBlocked(false);},[resetRevision,spawn]);
   // Restore keyboard control after artwork loads, a restart, or a runtime menu.
   useEffect(() => {
     if (!paused && !status) canvas.current?.focus({ preventScroll: true });
@@ -82,7 +85,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     if(!cached||!cachedSprite)setStatus("Loading world and Friend artwork…");
     let particles:{x:number;y:number;life:number}[]=[];let lastTrail:WorldPoint=spawn;let priorTrail:Trail="none";
     let frame = 0, previous = 0, lastNear: string | null = null, side: "left" | "right" = "right";
-    const stop = () => { stick.current={x:0,y:0};movement.stop(); previous = 0; };
+    const stop = () => { clearMouseHold();stick.current={x:0,y:0};movement.stop(); previous = 0; };
     window.addEventListener("blur", stop); document.addEventListener("visibilitychange", stop);
     const begin=([assets,sprites]:[Awaited<ReturnType<typeof loadWorldAssets>>,Awaited<ReturnType<ReturnType<typeof createFriendReader>["read"]>>]) => {
       if (abort.signal.aborted) return;
@@ -90,13 +93,15 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
       const render = (now: number) => {
         if(resetRequested.current){movement.stop();movement=createWorldMovement(world,resetRequested.current);mover.current=movement;resetRequested.current=null;previous=0;}
         const delta = !live.current.paused && !document.hidden && previous ? now - previous : 0;
+        const held=heldMouse.current;
+        if(held?.dirty&&!live.current.paused&&!document.hidden&&now-held.lastAim>=50){const rect=node.getBoundingClientRect();aimAt(unproject(VIEW.x+(held.x-rect.left)*VIEW.width/rect.width,VIEW.y+(held.y-rect.top)*VIEW.height/rect.height));held.dirty=false;held.lastAim=now;}
         let budget=Math.min(100,delta)*(live.current.movementScale?.(movement.state.position) ?? 1);
         if(stick.current.x||stick.current.y)steer(stick.current.x,stick.current.y);
         let state=movement.update(0);
         while(budget>0){const slice=Math.min(40,budget);state=movement.update(slice);budget-=slice;}
         previous = now;
         live.current.onStep(state.position, delta);
-        const destination=live.current.relocate?.();if(destination){movement.stop();stick.current={x:0,y:0};movement=createWorldMovement(world,destination);mover.current=movement;state=movement.state;}
+        const destination=live.current.relocate?.();if(destination){clearMouseHold();movement.stop();stick.current={x:0,y:0};movement=createWorldMovement(world,destination);mover.current=movement;state=movement.state;}
         context.clearRect(0, 0, VIEW.width, VIEW.height); context.save();
         context.scale(960 / VIEW.width, bufferHeight / VIEW.height); context.translate(-VIEW.x, -VIEW.y); context.imageSmoothingEnabled = false; context.drawImage(assets.terrain, 0, 0);
         live.current.drawTrack(context);
@@ -170,23 +175,28 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     <div className="rf-world-surface" style={size}>
       <canvas ref={canvas} width={960} height={bufferHeight} data-view-x={VIEW.x} data-view-y={VIEW.y} data-view-width={VIEW.width} data-view-height={VIEW.height} tabIndex={paused || status ? -1 : 0}
         aria-label="Circuit Sparking Stars. Flèches ou ZQSD pour marcher. Cliquez ou touchez une destination."
-        onBlur={() => mover.current?.stop()}
+        onBlur={() => {clearMouseHold();mover.current?.stop();}}
         onKeyDown={event => {
           if (paused || status) return;setClickBlocked(false);
           if (event.key.toLowerCase() === "e" && !event.repeat && mover.current) {
             const target = nearest(mover.current.state.position);
             if (target) { event.preventDefault(); onInteract(target); }
           }
-          if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, true)) {onControl?.('keyboard');event.preventDefault();}
+          if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, true)) {clearMouseHold();onControl?.('keyboard');event.preventDefault();}
         }}
         onKeyUp={event => { if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, false)) event.preventDefault(); }}
         onPointerDown={event => {
-          if (paused || status) return;
+          if (paused || status || event.button!==0) return;
           onControl?.(event.pointerType==='touch'?'touch':event.pointerType==='pen'?'pen':'mouse');
           event.currentTarget.focus(); const rect = event.currentTarget.getBoundingClientRect();
           const destination=unproject(VIEW.x + (event.clientX - rect.left) * VIEW.width / rect.width, VIEW.y + (event.clientY - rect.top) * VIEW.height / rect.height);
-          if(mover.current&&directClick.current){const aim=directClick.current(mover.current.state.position,destination);mover.current.stop();mover.current.moveTo(aim.target);setClickBlocked(aim.blocked);}
-        }} />
+          aimAt(destination);
+          if(event.pointerType==='mouse'){clearMouseHold();stick.current={x:0,y:0};heldMouse.current={id:event.pointerId,started:performance.now(),clientX:event.clientX,clientY:event.clientY,x:event.clientX,y:event.clientY,dragged:false,dirty:false,lastAim:performance.now()};event.currentTarget.setPointerCapture(event.pointerId);}
+        }}
+        onPointerMove={event=>{const held=heldMouse.current;if(!held||held.id!==event.pointerId||paused||status)return;if(!(event.buttons&1)){clearMouseHold();mover.current?.stop();return;}held.x=event.clientX;held.y=event.clientY;held.dirty=true;if(Math.hypot(held.x-held.clientX,held.y-held.clientY)>3)held.dragged=true;}}
+        onPointerUp={event=>{const held=heldMouse.current;if(!held||held.id!==event.pointerId)return;const continuous=held.dragged||performance.now()-held.started>=200;clearMouseHold();if(continuous)mover.current?.stop();}}
+        onPointerCancel={()=>{clearMouseHold();mover.current?.stop();}}
+        onLostPointerCapture={event=>{if(heldMouse.current?.id===event.pointerId){clearMouseHold();mover.current?.stop();}}} />
       {!status&&!paused&&clickTarget&&targetScreen&&<button type="button" className="star-aim" data-testid="covered-star-target" aria-label={`Viser l’étoile ${clickTarget.number}`}
         style={{left:`${100*(targetScreen[0]-VIEW.x)/VIEW.width}%`,top:`${100*(targetScreen[1]-VIEW.y)/VIEW.height}%`}}
         onPointerDown={event=>onControl?.(event.pointerType==='touch'?'touch':event.pointerType==='pen'?'pen':'mouse')}

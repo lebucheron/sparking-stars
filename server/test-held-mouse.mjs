@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {project} from '@rarefriends/friendsdk/world';
+import {testGame} from '../games/sparking-stars/test-profile-helper.mjs';
+await testGame('games/sparking-stars',{publicHost:true,profile:{generation:6,tier:0},width:1000,height:850,check:async({page,game})=>{
+ await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});
+ const canvas=game.locator('canvas[data-x]');
+ const position=()=>canvas.evaluate(c=>[Number(c.dataset.x),Number(c.dataset.y)]);
+ const screen=async point=>{const box=await canvas.boundingBox(),[x,y]=project(...point),v=await canvas.evaluate(c=>({x:+c.dataset.viewX,y:+c.dataset.viewY,w:+c.dataset.viewWidth,h:+c.dataset.viewHeight}));return [box.x+(x-v.x)*box.width/v.w,box.y+(y-v.y)*box.height/v.h];};
+ const aim=async point=>page.mouse.move(...await screen(point));
+ const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+ const stopped=async label=>{await page.waitForTimeout(80);const p=await position();await page.waitForTimeout(220);assert(distance(p,await position())<.01,label);};
+ const start=await position();await aim([85,220]);await page.mouse.down();await page.waitForTimeout(160);const before=await position();assert(distance(before,start)>3,'Hold drives the Friend');
+ await aim([150,285]);await page.waitForTimeout(180);assert(distance(await position(),start)<distance(before,start),'Held cursor redirects toward the new target');
+ await page.mouse.up();await stopped('Dragging release stops');
+ await aim([85,220]);await page.mouse.down();await page.waitForTimeout(250);await page.mouse.up();await stopped('Stationary long hold release stops');
+ await aim([85,220]);await page.mouse.down();await page.waitForTimeout(120);await page.mouse.move(2,2);await page.mouse.up();await stopped('Pointer capture stops after release outside the canvas');
+ await aim([85,220]);await page.mouse.down();await page.waitForTimeout(120);await canvas.evaluate(c=>c.blur());await stopped('Losing focus clears held steering');await aim([150,285]);await page.waitForTimeout(100);await stopped('Stale pointer motion cannot resume steering');await page.mouse.up();
+ const p=await position(),briefTarget=distance(p,[85,220])>distance(p,[150,285])?[85,220]:[150,285];await aim(briefTarget);await page.mouse.down();await page.mouse.up();const brief=await position();await page.waitForTimeout(250);assert(distance(brief,await position())>3,'A brief click still continues toward its destination');
+ await game.getByRole('button',{name:'Quitter la course',exact:true}).click();await game.getByRole('navigation',{name:'Le paddock'}).waitFor();await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});await stopped('New race starts without stale mouse input');
+ console.log('PASS held mouse: driving, cursor redirection, drag/long/outside release, focus loss, short-click compatibility and race restart.');
+}});
