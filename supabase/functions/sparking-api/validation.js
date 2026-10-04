@@ -4924,8 +4924,8 @@ var terrains_default = [
           320
         ]
       ],
-      rest: 2600,
-      visit: 1600
+      rest: 1400,
+      visit: 1e3
     }
   },
   {
@@ -5080,7 +5080,8 @@ var terrains = terrains_default.map((d, index) => {
     signals: [],
     missingChunks: [],
     geometry: { polygons: [d.shape], holes, depth: 18 + (d.level - 1) * 3 },
-    paths: [{ points: [...route, route[0]], width: d.width }, ...(d.sidePaths ?? []).map((points, i) => ({ points: points.map(([x, y]) => [x, y]), width: d.sideWidths?.[i] ?? 22 }))],
+    // GEN5 paints its whole fork network together; avoid a second set of SDK road outlines.
+    paths: index === 4 ? [] : [{ points: [...route, route[0]], width: d.width }],
     patches: [],
     props: d.props.map(([type, x, y, scale]) => ({ type, x: Number(x), y: Number(y), scale: Number(scale) })),
     collision: { blocked: d.blocks.map(([x, y, w, h]) => ({ x, y, w, h })) }
@@ -5104,7 +5105,7 @@ function distanceToTrack(point2, t) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-9ec6d01c9fc8e8aa";
+var RULES = "race-52bd36b1d077394b";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

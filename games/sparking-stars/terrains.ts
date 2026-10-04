@@ -6,7 +6,8 @@ export const terrains=definitions.map((d,index)=>{
  const holes=d.holes.map(([x,y,w,h])=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]]);
  const world=validateWorld({...garden,id:`sparking-gen-${index+1}`,name:d.name,actors:[],signals:[],missingChunks:[],
  geometry:{polygons:[d.shape],holes,depth:18+(d.level-1)*3},
- paths:[{points:[...route,route[0]],width:d.width},...(d.sidePaths??[]).map((points,i)=>({points:points.map(([x,y]):WorldPoint=>[x,y]),width:d.sideWidths?.[i]??22}))],patches:[],
+ // GEN5 paints its whole fork network together; avoid a second set of SDK road outlines.
+ paths:index===4?[]:[{points:[...route,route[0]],width:d.width}],patches:[],
  props:d.props.map(([type,x,y,scale])=>({type:type as WorldPropType,x:Number(x),y:Number(y),scale:Number(scale)})),
  collision:{blocked:d.blocks.map(([x,y,w,h])=>({x,y,w,h}))}});
  return {...d,route,world,gen:index+1};

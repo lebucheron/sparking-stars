@@ -2,6 +2,7 @@
 import {TRACK_PREVIEW,PREVIEW_GENERATION} from './track-preview';
 import {bushAllows,drawMovingBush} from './moving-bush';
 import {rubyAllows,rubyState,drawMovingRuby} from './moving-ruby';
+import {drawRoadNetwork} from './road-network';
 import {emptyHalloween} from './halloween-reward';
 import { useEffect, useRef, useState, useMemo } from "react";
 import type { GameComponentProps } from "@rarefriends/friendsdk/runtime";
@@ -147,11 +148,12 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   }
   function draw(ctx:CanvasRenderingContext2D){
     const r=race.current;ctx.save();ctx.lineJoin="round";
-    for(const [branch,path] of (terrain.sidePaths??[]).entries()){const width=terrain.sideWidths?.[branch]??22;ctx.beginPath();path.forEach((p,i)=>{const [x,y]=project(p[0],p[1]);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.strokeStyle='#000';ctx.lineWidth=width+6;ctx.stroke();ctx.strokeStyle='#fff';ctx.lineWidth=width;ctx.stroke();ctx.setLineDash([5,8]);ctx.strokeStyle='#000';ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);}
+    if(terrain.gen===5)drawRoadNetwork(ctx,terrain);else{
     ctx.beginPath();
     [...route,route[0]].forEach((p,i)=>{const [x,y]=project(...p);if(i===0||(terrain.forkSegments?.includes(i)))ctx.moveTo(x,y);else ctx.lineTo(x,y);});
     ctx.strokeStyle="#000000";ctx.lineWidth=terrain.width+6;ctx.stroke();ctx.strokeStyle="#ffffff";ctx.lineWidth=terrain.width;ctx.stroke();
     ctx.setLineDash([7,10]);ctx.lineWidth=2;ctx.strokeStyle="#000000";ctx.stroke();ctx.setLineDash([]);
+    }
     const [fx,fy]=project(...spawn);
     for(let row=0;row<2;row++)for(let col=0;col<6;col++){ctx.fillStyle=(row+col)%2?"#fff":"#000000";ctx.fillRect(fx-24+col*8,fy-8+row*8,8,8);}
     ctx.font="bold 13px monospace";ctx.textAlign="center";ctx.fillStyle="#000000";ctx.fillText("DÉPART / ARRIVÉE",fx,fy+30);
