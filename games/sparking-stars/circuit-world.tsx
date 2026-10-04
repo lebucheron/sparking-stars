@@ -1,13 +1,16 @@
 "use client";
+import {TouchStick} from './touch-stick';
 import {createDirectClick} from "./direct-click";
 import type {sampleGhost} from "./ghost";
 import {drawCosmetic,drawTrail,type Trail,type Cosmetic} from "./cosmetics";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {courseCamera} from './course-camera';
 import { loadWorldAssets } from "@rarefriends/friendsdk/assets";
 import { project, unproject, type WorldConfig, type WorldPoint } from "@rarefriends/friendsdk/world";
 import { createWorldMovement } from "@rarefriends/friendsdk/movement";
 import { createFriendReader, spriteFrame } from "@rarefriends/friendsdk/sprites";
+import {friendArt} from './friend-art';
 
 export type GameWorldInteraction = Readonly<{
   id: string; label: string; position: WorldPoint; reach?: number;
@@ -15,6 +18,9 @@ export type GameWorldInteraction = Readonly<{
   labelOffset?: number;
 }>;
 export type GameWorldProps = {
+  resetRevision?:number;
+  relocate?:()=>WorldPoint|null;
+  onControl?: (input:'touch'|'mouse'|'pen'|'keyboard')=>void;
   focusRevision?: number;
   preloadWorld?:WorldConfig;
   ghost?:()=>ReturnType<typeof sampleGhost>;
@@ -27,17 +33,22 @@ export type GameWorldProps = {
   friendId: bigint; world: WorldConfig; spawn: WorldPoint; interactions: readonly GameWorldInteraction[];
   paused?: boolean; reducedMotion?: boolean; onInteract: (id: string) => void;
 };
-const VIEW = { x: 220, y: 265, width: 1160, height: 1160 / 1.5 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
-export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld }: GameWorldProps) {
+export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0 }: GameWorldProps) {
+  const resetRequested=useRef<WorldPoint|null>(null);
+  const VIEW=useMemo(()=>courseCamera(world),[world]);
+  const aspect=VIEW.width/VIEW.height,bufferHeight=Math.round(960/aspect);
   const assetCache=useRef(new Map<WorldConfig,Awaited<ReturnType<typeof loadWorldAssets>>>()),spriteCache=useRef<{id:bigint;value:Awaited<ReturnType<ReturnType<typeof createFriendReader>["read"]>>}|null>(null);
   const root = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null);
   const directClick=useRef<ReturnType<typeof createDirectClick>|null>(null);
   const [clickBlocked,setClickBlocked]=useState(false);
   const mover = useRef<ReturnType<typeof createWorldMovement> | null>(null);
-  const live = useRef({ paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld });
-  live.current = { paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld };
+  const stick=useRef({x:0,y:0});
+  const [touchDevice]=useState(()=>navigator.maxTouchPoints>0||matchMedia('(pointer: coarse)').matches);
+  const steer=(x:number,y:number)=>{stick.current={x,y};const m=mover.current;if(!m)return;for(const [key,pressed]of [['ArrowLeft',x<0],['ArrowRight',x>0],['ArrowUp',y<0],['ArrowDown',y>0]] as [string,boolean][])m.setKey(key,pressed);};
+  const live = useRef({ paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate });
+  live.current = { paused, reducedMotion, interactions, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, relocate };
   const [near, setNear] = useState<string | null>(null), [revision, setRevision] = useState(0);
   const [status, setStatus] = useState("Loading world and Friend artwork…"), [failed, setFailed] = useState(false);
   const [size, setSize] = useState({ width: 960, height: 640 });
@@ -48,12 +59,14 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
   useEffect(() => {
     if (!root.current) return;
     const observer = new ResizeObserver(([entry]) => {
-      const width = Math.min(entry.contentRect.width, entry.contentRect.height * (window.matchMedia("(max-height:520px) and (min-width:601px)").matches ? 2.5 : 1.5));
-      setSize({ width, height: width / 1.5 });
+      const width = Math.min(entry.contentRect.width, entry.contentRect.height * aspect);
+      setSize({ width, height: width / aspect });
     });
     observer.observe(root.current); return () => observer.disconnect();
-  }, []);
-  useEffect(() => { if (paused) mover.current?.stop(); }, [paused]);
+  }, [aspect]);
+  useEffect(() => { if (paused){stick.current={x:0,y:0};mover.current?.stop();} }, [paused]);
+  // Restart only movement; keep the loaded terrain and canonical artwork alive.
+  useEffect(()=>{resetRequested.current=spawn;stick.current={x:0,y:0};mover.current?.stop();setClickBlocked(false);},[resetRevision,spawn]);
   // Restore keyboard control after artwork loads, a restart, or a runtime menu.
   useEffect(() => {
     if (!paused && !status) canvas.current?.focus({ preventScroll: true });
@@ -62,26 +75,29 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     const node = canvas.current, context = node?.getContext("2d");
     if (!node || !context) { setFailed(true); setStatus("This browser cannot render the world."); return; }
     const previousPosition=mover.current?.state.position ?? spawn;
-    const abort = new AbortController(), movement = createWorldMovement(world, previousPosition);
+    const abort = new AbortController();let movement = createWorldMovement(world, previousPosition);
     directClick.current=createDirectClick(world);mover.current = movement; setNear(null); setFailed(false);
     const cached=assetCache.current.get(world),cachedSprite=spriteCache.current?.id===friendId?spriteCache.current.value:null;
     if(!cached||!cachedSprite)setStatus("Loading world and Friend artwork…");
     let particles:{x:number;y:number;life:number}[]=[];let lastTrail:WorldPoint=spawn;let priorTrail:Trail="none";
     let frame = 0, previous = 0, lastNear: string | null = null, side: "left" | "right" = "right";
-    const stop = () => { movement.stop(); previous = 0; };
+    const stop = () => { stick.current={x:0,y:0};movement.stop(); previous = 0; };
     window.addEventListener("blur", stop); document.addEventListener("visibilitychange", stop);
     const begin=([assets,sprites]:[Awaited<ReturnType<typeof loadWorldAssets>>,Awaited<ReturnType<ReturnType<typeof createFriendReader>["read"]>>]) => {
       if (abort.signal.aborted) return;
       setStatus("");
       const render = (now: number) => {
+        if(resetRequested.current){movement.stop();movement=createWorldMovement(world,resetRequested.current);mover.current=movement;resetRequested.current=null;previous=0;}
         const delta = !live.current.paused && !document.hidden && previous ? now - previous : 0;
         let budget=Math.min(100,delta)*(live.current.movementScale?.(movement.state.position) ?? 1);
+        if(stick.current.x||stick.current.y)steer(stick.current.x,stick.current.y);
         let state=movement.update(0);
         while(budget>0){const slice=Math.min(40,budget);state=movement.update(slice);budget-=slice;}
         previous = now;
         live.current.onStep(state.position, delta);
+        const destination=live.current.relocate?.();if(destination){movement.stop();stick.current={x:0,y:0};movement=createWorldMovement(world,destination);mover.current=movement;state=movement.state;}
         context.clearRect(0, 0, VIEW.width, VIEW.height); context.save();
-        context.scale(960 / VIEW.width, 640 / VIEW.height); context.translate(-VIEW.x, -VIEW.y); context.imageSmoothingEnabled = false; context.drawImage(assets.terrain, 0, 0);
+        context.scale(960 / VIEW.width, bufferHeight / VIEW.height); context.translate(-VIEW.x, -VIEW.y); context.imageSmoothingEnabled = false; context.drawImage(assets.terrain, 0, 0);
         live.current.drawTrack(context);
         const [x, y] = project(...state.position);
         const selectedTrail=live.current.trail??"none";
@@ -139,7 +155,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     if(cached&&cachedSprite)begin([cached,cachedSprite]);
     else void Promise.all([
       loadWorldAssets(world,{signals:false,color:false},abort.signal),
-      cachedSprite?Promise.resolve(cachedSprite):createFriendReader().read(friendId),
+      cachedSprite?Promise.resolve(cachedSprite):friendArt.read(friendId),
       preloadWorld&&preloadWorld!==world?loadWorldAssets(preloadWorld,{signals:false,color:false},abort.signal):Promise.resolve(null),
     ]).then(([assets,sprites,alternate])=>{
       if(abort.signal.aborted)return;assetCache.current.clear();assetCache.current.set(world,assets);if(alternate&&preloadWorld)assetCache.current.set(preloadWorld,alternate);spriteCache.current={id:friendId,value:sprites};begin([assets,sprites]);
@@ -147,9 +163,10 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
     return () => { abort.abort(); cancelAnimationFrame(frame); stop(); window.removeEventListener("blur", stop); document.removeEventListener("visibilitychange", stop); };
   }, [friendId, world, spawn, revision, preloadWorld]);
 
-  return <div ref={root} className="rf-world-view">
+  return <div ref={root} className={`rf-world-view${touchDevice&&!paused?" touch-driving":""}`}>
+    {touchDevice&&!paused&&!status&&<TouchStick onDirection={steer} onControl={kind=>onControl?.(kind)}/>}
     <div className="rf-world-surface" style={size}>
-      <canvas ref={canvas} width={960} height={640} tabIndex={paused || status ? -1 : 0}
+      <canvas ref={canvas} width={960} height={bufferHeight} data-view-x={VIEW.x} data-view-y={VIEW.y} data-view-width={VIEW.width} data-view-height={VIEW.height} tabIndex={paused || status ? -1 : 0}
         aria-label="Circuit Sparking Stars. Flèches ou ZQSD pour marcher. Cliquez ou touchez une destination."
         onBlur={() => mover.current?.stop()}
         onKeyDown={event => {
@@ -158,18 +175,19 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
             const target = nearest(mover.current.state.position);
             if (target) { event.preventDefault(); onInteract(target); }
           }
-          if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, true)) event.preventDefault();
+          if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, true)) {onControl?.('keyboard');event.preventDefault();}
         }}
         onKeyUp={event => { if (mover.current?.setKey(({z:"w",q:"a"} as Record<string,string>)[event.key.toLowerCase()] ?? event.key, false)) event.preventDefault(); }}
         onPointerDown={event => {
           if (paused || status) return;
+          onControl?.(event.pointerType==='touch'?'touch':event.pointerType==='pen'?'pen':'mouse');
           event.currentTarget.focus(); const rect = event.currentTarget.getBoundingClientRect();
           const destination=unproject(VIEW.x + (event.clientX - rect.left) * VIEW.width / rect.width, VIEW.y + (event.clientY - rect.top) * VIEW.height / rect.height);
           if(mover.current&&directClick.current){const aim=directClick.current(mover.current.state.position,destination);mover.current.stop();mover.current.moveTo(aim.target);setClickBlocked(aim.blocked);}
         }} />
       {!status&&clickBlocked&&!paused&&<p className="click-feedback" role="status">Obstacle : vise un point à côté pour le contourner.</p>}
       {!status && interactions.map(item => { const [x, y] = project(...item.position); return <button type="button" className="rf-world-prompt" key={item.id}
-        style={{ left: `${(x - VIEW.x) / 9.6}%`, top: `${(y - VIEW.y + (item.labelOffset ?? 34)) / 6.4}%` }} disabled={paused || near !== item.id}
+        style={{ left: `${100*(x - VIEW.x) / VIEW.width}%`, top: `${100*(y - VIEW.y + (item.labelOffset ?? 34)) / VIEW.height}%` }} disabled={paused || near !== item.id}
         onClick={() => onInteract(item.id)}>{item.label}<small>{near === item.id ? "E / tap to interact" : "Walk closer"}</small></button>; })}
     </div>
     {status && <div className="rf-world-loading" role={failed ? "alert" : "status"}><p>{status}</p>{failed && <button type="button" onClick={() => setRevision(value => value + 1)}>Retry artwork</button>}</div>}

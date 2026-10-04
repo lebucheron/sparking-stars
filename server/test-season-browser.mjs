@@ -22,7 +22,7 @@ for(const width of [1000,390]){
  },check:async({page,game})=>{
   const login=async()=>{
    assert.equal(await page.getByRole('button',{name:'Activer le classement',exact:true}).isVisible(),false);
-   await game.getByRole('button',{name:/Boutique ·/}).click();
+   await game.getByRole('button',{name:'Garage',exact:true}).click();
    await page.evaluate(()=>{const original=window.ethereum.request.bind(window.ethereum);window.ethereum.request=async args=>args.method==='personal_sign'?'0x'+'1'.repeat(130):original(args);});
    await page.getByRole('button',{name:'Activer le classement',exact:true}).click();
    await page.getByRole('button',{name:'Activer le classement',exact:true}).waitFor({state:'hidden'});

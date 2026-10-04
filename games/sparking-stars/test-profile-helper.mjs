@@ -11,7 +11,7 @@ import { installFixture, createArtworkFixture, assertBounds, OWNER, FRIEND_WALLE
  * Run a game's real sandboxed runtime in headless Chromium with read-only fixtures.
  * This is automated testing only: no preview server or mock identity is published.
  */
-export async function testGame(gameDirectory, { profile = {generation:1,tier:0}, width = 960, height = 800, screenshot, timeout = 15_000, check, publicHost = false, beforeOpen } = {}) {
+export async function testGame(gameDirectory, { profile = {generation:1,tier:0}, width = 960, height = 800, hasTouch = width < 500, screenshot, timeout = 15_000, check, publicHost = false, beforeOpen } = {}) {
   for (const [name, value] of Object.entries({ width, height, timeout })) {
     if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer.`);
   }
@@ -29,7 +29,7 @@ export async function testGame(gameDirectory, { profile = {generation:1,tier:0},
     await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
     const origin = `http://127.0.0.1:${server.address().port}`;
     browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({ viewport: { width, height }, hasTouch: width < 500,
+    const context = await browser.newContext({ viewport: { width, height }, hasTouch,
       reducedMotion: "reduce" });
     // Reject sockets as well as fetches; RPC is always answered locally below.
     await context.routeWebSocket("**/*", socket => { errors.push(`Unexpected WebSocket: ${socket.url()}`); socket.close(); });

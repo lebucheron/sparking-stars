@@ -10,6 +10,10 @@ import '@rarefriends/friendsdk/runtime.css';
 import '../games/sparking-stars/host.css';
 import {walletProvider as provider,injected} from './wallet-provider';
 import {DemoRecorder} from './demo-recorder';
+import {questStore} from './quest-store';
+import {halloweenStore} from './halloween-store';
+import {personalGhostStore} from './ghost-store';
+import {RULES} from '../games/sparking-stars/rules-version';
 import definitionJson from '../games/sparking-stars/game.json';
 const definition=parseChanceGame(definitionJson);
 const API='https://hkudnvqseodizcplkgvw.supabase.co/functions/v1/sparking-api';
@@ -46,19 +50,50 @@ function App(){
    if(!frame||e.source!==frame.contentWindow||e.data?.type!=='sparking-public-v1'||e.ports.length!==1)return;
    const port=e.ports[0],r=revision,{action,payload}=e.data;
    try{
-    if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator'].includes(action))throw new Error('Action refusée.');
+    if(!payload||typeof payload!=='object'||!['context','prepare','board','start','finish','style','creator','ghost','quests','focus','halloween'].includes(action))throw new Error('Action refusée.');
+    if(action==='focus'){if(typeof payload.active!=='boolean')throw Error('Vue incorrecte.');setCinema(payload.active);if(!payload.active&&document.fullscreenElement)void document.exitFullscreen().catch(()=>{});port.postMessage({ok:true});return;}
     if(action==='context'){if(payload.needed===false)setAuthNeeded(false);port.postMessage({ok:true});return;}
     if(action==='prepare'){
      if(typeof payload.friendId!=='string'||!/^[1-9][0-9]{0,77}$/.test(payload.friendId))throw new Error('Friend incorrect.');
      if(friendId!==payload.friendId){clear();setAuthNeeded(false);friendId=payload.friendId;setNotice('Classement bêta · signature gratuite pour publier tes courses.');}setHasFriend(true);port.postMessage({ready:true});return;
     }
-    if(action==='creator'){port.postMessage(await request({action:'creator'}));return;}
-    if(action==='board'){const data=await request({action,gen:payload.gen,equipment:payload.equipment,period:payload.period});port.postMessage(data);return;}
+    if(action==='halloween'){
+     if(payload.friendId!==friendId)throw Error('Le pilote a changé.');
+     const wallet=await account();if(r!==revision||frame!==document.querySelector('iframe'))throw Error('Le pilote a changé.');
+     const storage=(()=>{try{return window.localStorage;}catch{return {getItem:()=>null,setItem:()=>{throw Error('Storage blocked');}};}})();
+     const store=halloweenStore(storage,wallet,friendId);
+     if(payload.operation==='read')port.postMessage(store.read());
+     else if(payload.operation==='complete')port.postMessage(store.complete(payload.id,payload.ms));
+     else if(payload.operation==='equip')port.postMessage(store.equip(payload.equipped));
+     else throw Error('Action Halloween refusée.');return;
+    }
+    if(action==='quests'){
+     if(payload.friendId!==friendId||payload.rules!==RULES)throw new Error('Le pilote ou le circuit a changé.');
+     const wallet=await account();if(r!==revision||frame!==document.querySelector('iframe'))throw new Error('Le pilote a changé.');
+     const storage=(()=>{try{return window.localStorage;}catch{return {getItem:()=>null,setItem:()=>{throw Error('Storage blocked');}};}})();
+     const store=questStore(storage,wallet,friendId,RULES);
+     if(payload.operation==='read')port.postMessage({categories:store.read()});
+     else if(payload.operation==='complete')port.postMessage(store.complete(payload.gen,payload.mode,payload.equipment,payload.controls,payload.ghost,payload.id));
+     else throw Error('Action de quête refusée.');return;
+    }
+    if(action==='ghost'){
+     if(payload.friendId!==friendId||payload.rules!==RULES)throw new Error('Le pilote ou le circuit a changé.');
+     const wallet=await account();if(r!==revision||frame!==document.querySelector('iframe'))throw new Error('Le pilote a changé.');
+     try{
+      const store=personalGhostStore(window.localStorage,wallet,friendId,RULES);
+      if(payload.operation==='read')port.postMessage({ghosts:store.read()});
+      else if(payload.operation==='write')port.postMessage(store.save(payload.gen,payload.mode,payload.equipment,payload.ghost,payload.controls));
+      else throw new Error('Action de fantôme refusée.');
+     }catch(err){if(payload.operation==='read')port.postMessage({ghosts:{}});else throw err;}
+     return;
+    }
+    if(action==='creator'){port.postMessage(await request({action:'creator',controls:payload.controls}));return;}
+    if(action==='board'){const data=await request({action,gen:payload.gen,equipment:payload.equipment,period:payload.period,controls:payload.controls});port.postMessage(data);return;}
     if(action==='start'&&typeof payload.friendId==='string'&&/^[1-9][0-9]{0,77}$/.test(payload.friendId))friendId=payload.friendId;
-    if(!token||expiry<Date.now()){setAuthNeeded(true);setNotice(action==='style'?'Connecte-toi pour retrouver ta collection sauvegardée.':'Connecte-toi pour publier ta course classée.');throw new Error('Clique « Activer le classement » au-dessus du jeu, puis relance la course.');}
+    if(!token||expiry<Date.now()){setAuthNeeded(true);setNotice(action==='style'?'Connecte-toi pour retrouver ta collection sauvegardée.':'Une connexion gratuite est nécessaire avant le départ en compétition.');throw new Error('Active le classement dans la fenêtre de connexion, puis lance ton départ.');}
     const exclusive=!(action==='style'&&payload.operation==='read');if(exclusive&&busy)throw new Error('Une demande est déjà en cours.');if(exclusive)busy=true;
     try{
-     await account();const body=action==='style'?{action,friendId:payload.friendId,operation:payload.operation,item:payload.item,kind:payload.kind}:action==='start'?{action,friendId:payload.friendId,equipment:payload.equipment,rules:payload.rules}:{action,id:payload.id,trace:payload.trace};
+     await account();const body=action==='style'?{action,friendId:payload.friendId,operation:payload.operation,item:payload.item,kind:payload.kind}:action==='start'?{action,friendId:payload.friendId,equipment:payload.equipment,rules:payload.rules,controls:payload.controls}:{action,id:payload.id,trace:payload.trace,controls:payload.controls,inputs:payload.inputs};
      const data=await request(body,true);if(r!==revision||frame!==document.querySelector('iframe'))throw new Error('Le pilote a changé.');port.postMessage(data);
     }finally{if(exclusive)busy=false;}
    }catch(err){port.postMessage({error:err instanceof Error?err.message:'Classement indisponible.'});}finally{port.close();}
@@ -82,7 +117,7 @@ function App(){
  return <section className={`paddock-window${cinema?" race-focus":""}`} aria-label="Sparking Stars — le paddock">
   <header className="paddock-titlebar"><div className="paddock-brand"><span className="paddock-mark" aria-hidden="true">✦</span><div><strong>SPARKING STARS</strong><small>RARE FRIENDS · RACE CLUB</small></div></div><div className="paddock-window-actions"><DemoRecorder/><span className="season-tag">01 / CONSTELLATIONS</span></div></header>
   {!injected&&!hasFriend&&<p className="wallet-connect-hint">Avec « Connect wallet », autorise MetaMask puis reviens ici pour jouer dans ce navigateur.</p>}
-  {authNeeded&&<aside className="paddock-connection" aria-label="Connexion au classement"><span className="connection-note" role="status">{notice}</span><button disabled={working} onClick={login}>Activer le classement</button><button disabled={working} onClick={()=>setAuthNeeded(false)} aria-label="Fermer la demande de connexion">Plus tard</button></aside>}
+  {authNeeded&&<div className="connection-overlay"><aside className="paddock-connection" role="dialog" aria-modal="true" aria-label="Connexion au classement"><h2>Connexion gratuite</h2><span className="connection-note" role="status">{notice}</span><p>Confirme la signature dans MetaMask. Aucun paiement ni transaction. Cette connexion fonctionne aussi pour ta collection.</p><button autoFocus disabled={working} onClick={login}>{working?'Connexion en cours…':'Activer le classement'}</button><button disabled={working} onClick={()=>setAuthNeeded(false)} aria-label="Fermer la demande de connexion">Plus tard</button></aside></div>}
   <div className="paddock-stage"><GameHost definition={definition} frameUrl="./game.html" walletProvider={provider}/></div>
   <button className="race-fullscreen" onClick={()=>void fullscreen()} aria-pressed={cinema} aria-label={cinema?"Quitter la vue course":"Agrandir la course"} title={cinema?"Quitter la vue course":"Agrandir la course"}><span aria-hidden="true">{cinema?"↙":"⛶"}</span></button>
   <footer className="paddock-footer"><span>6 ÎLES / UN CHRONO À BATTRE</span><span className="footer-checks" aria-hidden="true"/><span>BÊTA · 100 % MONOCHROME</span></footer>

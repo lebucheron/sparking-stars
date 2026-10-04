@@ -8,12 +8,12 @@ function Preview({item}:{item:typeof seasonItems[number]}){
  useEffect(()=>{const c=ref.current?.getContext('2d');if(!c)return;c.clearRect(0,0,150,90);if(item.kind==='cosmetic')drawCosmetic(c,item.id as Cosmetic,75,58);else for(let i=0;i<4;i++)drawTrail(c,item.id as Trail,35+i*25,55-i*7,5+i);},[item]);
  return <canvas ref={ref} width={150} height={90} aria-hidden="true"/>;
 }
-export function Season({friendId,onCosmetic,onTrail}:{friendId:bigint;onCosmetic:(id:Cosmetic)=>void;onTrail:(id:Trail)=>void}){
+export function Season({friendId,onCosmetic,onRestoreCosmetic,onTrail}:{friendId:bigint;onCosmetic:(id:Cosmetic)=>void;onRestoreCosmetic?:(id:Cosmetic)=>void;onTrail:(id:Trail)=>void}){
  const [state,setState]=useState<StyleState|null>(null),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
  const version=useRef(0);
  async function update(operation='read',item?:string,kind?:string){
   if(busy)return;const v=version.current;setBusy(true);setMessage('');
-  try{const data:StyleState=await publicApi('style',{friendId:String(friendId),operation,item,kind});if(v!==version.current)return;setState(data);onCosmetic(data.cosmetic as Cosmetic);onTrail(data.trail as Trail);setMessage(operation==='buy'?'Accessoire ajouté à ta collection !':operation==='equip'?'Style équipé et sauvegardé.':'Collection synchronisée.');}
+  try{const data:StyleState=await publicApi('style',{friendId:String(friendId),operation,item,kind});if(v!==version.current)return;setState(data);(operation==='read'&&onRestoreCosmetic?onRestoreCosmetic:onCosmetic)(data.cosmetic as Cosmetic);onTrail(data.trail as Trail);setMessage(operation==='buy'?'Accessoire ajouté à ta collection !':operation==='equip'?'Style équipé et sauvegardé.':'Collection synchronisée.');}
   catch(e){if(v===version.current)setMessage(e instanceof Error?e.message:'Collection indisponible.');}
   finally{if(v===version.current)setBusy(false);}
  }

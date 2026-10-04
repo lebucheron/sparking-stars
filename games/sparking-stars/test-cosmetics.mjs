@@ -7,7 +7,7 @@ for(const width of [1000,390])await testGame('games/sparking-stars',{width,heigh
  await game.getByRole('button',{name:'C’est parti !',exact:true}).waitFor();
  const canvas=game.locator('canvas[data-x]');await canvas.waitFor();
  for(const [name,id] of [['Casque damier','helmet'],['Casquette du paddock','cap'],['Antenne étoile','antenna'],['Au naturel','none']]){
-  await game.getByRole('button',{name:/Boutique ·/}).click();
+  await game.getByRole('button',{name:'Garage',exact:true}).click();
   const button=game.getByRole('button',{name:new RegExp('^'+name)});await button.click();
   assert.equal(await button.getAttribute('aria-pressed'),'true');
   assert.equal(await game.getByTestId('coins').innerText(),'300 pièces');
@@ -16,7 +16,7 @@ for(const width of [1000,390])await testGame('games/sparking-stars',{width,heigh
   await page.waitForFunction(()=>true);
   await canvas.locator(`xpath=self::*[@data-cosmetic="${id}"]`).waitFor();
  }
- await game.getByRole('button',{name:/Boutique ·/}).click();
+ await game.getByRole('button',{name:'Garage',exact:true}).click();
  await game.getByRole('button',{name:/^Casque damier/}).click();
  await game.getByRole('button',{name:'Retour au circuit',exact:true}).click();
  await game.getByRole('button',{name:'C’est parti !',exact:true}).click();

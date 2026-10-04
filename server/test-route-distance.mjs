@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+const compiled=await build({stdin:{contents:"export {terrains} from './games/sparking-stars/terrains.ts';export {distanceToRoute} from './games/sparking-stars/route-distance.ts';",resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'esm',write:false});const {terrains,distanceToRoute}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
+const original=(p,route)=>Math.min(...route.map((a,i)=>{const b=route[(i+1)%route.length],dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy)));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);}));
+let cases=0;for(const terrain of terrains){const points=[...terrain.route];for(let x=0;x<=576;x+=9)for(let y=0;y<=384;y+=9)points.push([x,y]);for(const p of points){assert.equal(distanceToRoute(p,terrain.route),original(p,terrain.route));cases++;}for(const [i,a]of terrain.route.entries()){const b=terrain.route[(i+1)%terrain.route.length];const p=[(a[0]+b[0])/2,(a[1]+b[1])/2];assert.equal(distanceToRoute(p,terrain.route),original(p,terrain.route));cases++;}}
+console.log(`PASS ${cases} exact distance comparisons across six circuits: cached segments preserve existing road-boundary calculations.`);

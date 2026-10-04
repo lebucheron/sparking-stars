@@ -2,6 +2,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.57.4';
 import {createPublicClient,http,parseAbi} from 'npm:viem@2.56.3';
 import {validateTrace,RULES} from './validation.js';
+import {resolveRaceControls} from '../../../server/control-validation.ts';
 const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
 const rpc=createPublicClient({transport:http('https://rpc.mainnet.chain.robinhood.com',{timeout:10000,retryCount:1})});
 const collection='0x14C49e6118F46525dE9ab41a51cBAA3c6EBF181D';
@@ -37,12 +38,14 @@ Deno.serve(async(req)=>{
   const buffer=new Uint8Array(bytes);let offset=0;for(const c of chunks){buffer.set(c,offset);offset+=c.length;}
   const b=JSON.parse(new TextDecoder().decode(buffer));check(b&&typeof b==='object'&&!Array.isArray(b));
   if(b.action==='creator'){
-   const rows=await result(db.from('sparking_scores').select('elapsed_ms,finished_at').eq('friend_id','331213').eq('generation',3).eq('equipment','feet').eq('rules_version',RULES).is('withdrawn_at',null).gte('finished_at','2026-09-26T09:29:00Z').order('elapsed_ms').limit(1));
-   return send({friendId:'331213',gen:3,equipment:'feet',rules:RULES,ms:rows[0]?.elapsed_ms??null});
+   const controls=b.controls??'legacy';check(['legacy','touch','desktop'].includes(controls));
+   const rows=await result(db.from('sparking_scores').select('elapsed_ms,finished_at').eq('friend_id','331213').eq('generation',3).eq('equipment','feet').eq('rules_version',RULES).eq('controls',controls).is('withdrawn_at',null).gte('finished_at','2026-09-26T09:29:00Z').order('elapsed_ms').limit(1));
+   return send({friendId:'331213',gen:3,equipment:'feet',rules:RULES,controls,ms:rows[0]?.elapsed_ms??null});
   }
   if(b.action==='board'){
    check(Number.isInteger(b.gen)&&b.gen>=1&&b.gen<=6&&['feet','rollers','kart'].includes(b.equipment)&&['day','week','month'].includes(b.period));
-   return send({rules:RULES,rows:await result(db.rpc('sparking_board',{p_gen:b.gen,p_gear:b.equipment,p_rules:RULES,p_period:b.period}))});
+   const controls=b.controls??'legacy';check(['legacy','touch','desktop'].includes(controls));
+   return send({rules:RULES,controls,rows:await result(db.rpc('sparking_board_controls',{p_gen:b.gen,p_gear:b.equipment,p_rules:RULES,p_period:b.period,p_controls:controls}))});
   }
   if(b.action==='challenge'){
    check(typeof b.wallet==='string'&&/^0x[0-9a-fA-F]{40}$/.test(b.wallet));const wallet=b.wallet.toLowerCase();
@@ -76,8 +79,9 @@ Deno.serve(async(req)=>{
    check(b.rules===RULES,'Le circuit a changé : recharge le jeu.');
    check(['feet','rollers','kart'].includes(b.equipment));const p=await profile(b.friendId,session.wallet);
    check(b.equipment==='feet'||p.tier>=(b.equipment==='rollers'?2:4),'Tier insuffisant pour cet équipement.');
-   const [run]=await result(db.rpc('sparking_start',{p_hash:hash,p_friend:b.friendId,p_gen:p.generation,p_gear:b.equipment,p_rules:RULES}));
-   return send({id:run.id,generation:p.generation,rules:RULES});
+   const controls=b.controls??'legacy';check(['legacy','touch','desktop'].includes(controls));
+   const [run]=await result(db.rpc(controls==='legacy'?'sparking_start':'sparking_start_controls',{p_hash:hash,p_friend:b.friendId,p_gen:p.generation,p_gear:b.equipment,p_rules:RULES,...(controls==='legacy'?{}:{p_controls:controls})}));
+   return send({id:run.id,generation:p.generation,rules:RULES,controls});
   }
   if(b.action==='finish'){
    check(typeof b.id==='string'&&/^[0-9a-f-]{36}$/.test(b.id));
@@ -85,7 +89,8 @@ Deno.serve(async(req)=>{
    check(run.rules_version===RULES,'Circuit obsolète.');
    const p=await profile(run.friend_id,session.wallet);check(p.generation===run.generation);
    const ms=validateTrace(run.generation,run.equipment,b.trace);
-   const accepted=await result(db.rpc('sparking_finish',{p_id:run.id,p_hash:hash,p_ms:ms}));return send({ms:accepted});
+   const controls=run.controls==='legacy'?'legacy':resolveRaceControls(run.controls,b.controls,b.inputs,ms);
+   const accepted=await result(db.rpc(controls==='legacy'?'sparking_finish':'sparking_finish_controls',{p_id:run.id,p_hash:hash,p_ms:ms,...(controls==='legacy'?{}:{p_controls:controls})}));return send({ms:accepted,controls});
   }
   fail('Action inconnue.');
  }catch(e){return send({error:e instanceof Error&&e.message.length<180?e.message:'Service indisponible. Réessaie.'},400);}
