@@ -1,10 +1,15 @@
-export type Cosmetic="none"|"helmet"|"cap"|"antenna"|"crown"|"halo"|"cometcap"|"eclipse";
+export type Cosmetic="none"|"helmet"|"cap"|"antenna"|"crown"|"halo"|"cometcap"|"eclipse"|"witchhat";
 export const cosmetics=[{id:"none",name:"Au naturel",description:"Ton Friend original."},{id:"helmet",name:"Casque damier",description:"Prêt pour la pole position."},{id:"cap",name:"Casquette du paddock",description:"La visière des jours de course."},{id:"antenna",name:"Antenne étoile",description:"Un peu sérieux, un peu cosmique."}] as const;
 // Pure drawing: no changes to movement, collision, rewards or the NFT sprite.
 export function drawCosmetic(c:CanvasRenderingContext2D,id:Cosmetic,x:number,y:number){
  if(id==="none")return;
  c.save();c.fillStyle="#fff";c.strokeStyle="#000";c.lineWidth=3;c.lineJoin="round";
- if(id==="crown"){
+ if(id==="witchhat"){
+  c.fillStyle="#514457";c.strokeStyle="#f6efe0";c.lineWidth=3;
+  c.beginPath();c.moveTo(x-28,y+2);c.lineTo(x-13,y-29);c.lineTo(x+3,y-48);c.lineTo(x+20,y-37);c.lineTo(x+8,y-37);c.lineTo(x+24,y+2);c.closePath();c.fill();c.stroke();
+  c.fillStyle="#b77b4b";c.fillRect(x-21,y-8,42,8);c.fillStyle="#e5c182";c.fillRect(x-4,y-8,8,8);
+  c.fillStyle="#514457";c.beginPath();c.ellipse(x,y+3,39,8,-.05,0,Math.PI*2);c.fill();c.stroke();
+ }else if(id==="crown"){
   c.beginPath();c.moveTo(x-27,y+4);c.lineTo(x-30,y-24);c.lineTo(x-14,y-12);c.lineTo(x,y-34);c.lineTo(x+14,y-12);c.lineTo(x+30,y-24);c.lineTo(x+27,y+4);c.closePath();c.fill();c.stroke();c.fillStyle="#000";c.fillRect(x-25,y-3,50,6);
  }else if(id==="halo"){
   c.beginPath();c.ellipse(x,y-26,30,9,-.15,0,Math.PI*2);c.stroke();c.beginPath();c.ellipse(x,y-26,23,5,-.15,0,Math.PI*2);c.stroke();c.fillStyle="#000";c.fillRect(x+24,y-37,6,6);

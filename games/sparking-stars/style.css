@@ -129,3 +129,4 @@
  .haunted-notice{top:55px;max-width:45%;font-size:10px}
 }
 @media(max-height:520px) and (min-width:601px){.sparking:has(.touch-driving) .race-status{right:64px}.touch-stick{bottom:24px}}
+.halloween-reward{margin:16px 0;padding:12px;border:1px solid #c8bac6;border-radius:10px;background:#f4efe9}.halloween-reward strong{font:600 14px Arial,sans-serif;color:#514457}.halloween-reward p{margin:7px 0;font-size:12px}.halloween-reward small{display:block;margin-top:7px;font-size:10px;color:#716673}.halloween-reward button{font-size:11px!important;padding:8px 12px!important}.race-card .halloween-reward{margin:12px 0;text-align:center}

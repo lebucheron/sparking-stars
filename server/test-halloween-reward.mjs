@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+const bundle=await build({entryPoints:['host/halloween-store.ts'],bundle:true,platform:'node',format:'esm',write:false});
+const {halloweenStore}=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
+const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
+const store=halloweenStore(storage,'0xabc','7730');
+assert.equal(store.read().wins,0);
+assert.throws(()=>store.equip(true),'Hat is locked initially');
+assert.equal(store.complete('lap-1',18000).unlocked,false);
+assert.equal(store.complete('lap-1',18000).wins,1,'A repeated arrival cannot count twice');
+assert.equal(store.complete('lap-2',22000).unlocked,false);
+assert.throws(()=>store.equip(true),'Two victories cannot equip the reward');
+const third=store.complete('lap-3',700000);
+assert.deepEqual(third,{wins:3,unlocked:true,equipped:true,earned:true,saved:true},'Third finished lap unlocks and equips even after long exploration');
+assert.equal(store.complete('lap-4',15000).earned,false,'Award is one-time');
+assert.equal(store.read().wins,3);
+assert.equal(halloweenStore(storage,'0xABC','7730').read().equipped,true,'Reload and account casing retain the hat');
+assert.equal(store.equip(false).equipped,false);
+assert.equal(halloweenStore(storage,'0xabc','7730').read().unlocked,true,'Removing the hat keeps ownership');
+assert.equal(store.equip(true).equipped,true);
+assert.equal(halloweenStore(storage,'0xdef','7730').read().wins,0,'Wallet isolation');
+assert.equal(halloweenStore(storage,'0xabc','7731').read().wins,0,'Friend isolation');
+for(const [id,ms] of [['',15000],['x',NaN],['x',0],['x',Infinity]])assert.throws(()=>store.complete(id,ms));
+const blocked=halloweenStore({getItem(){throw Error('blocked');},setItem(){throw Error('quota');}},'blocked','1');
+assert.equal(blocked.complete('a',10000).saved,false);blocked.complete('b',10000);assert.equal(blocked.complete('c',10000).equipped,true);
+assert.equal(blocked.read().saved,false);assert.equal(blocked.equip(false).equipped,false);
+for(const damaged of ['{broken','null','{"version":1,"wins":99,"equipped":true,"ids":[]}','{"version":1,"wins":2,"equipped":true,"ids":[]}']){
+ memory.set('sparking:halloween:v1:damaged:1',damaged);const p=halloweenStore(storage,'damaged','1').read();assert.equal(p.unlocked,false);assert.equal(p.equipped,false);
+}
+console.log('PASS Halloween third-lap reward, idempotent arrival, capped progress, equip/reload, wallet/Friend isolation and damaged/quota storage.');
