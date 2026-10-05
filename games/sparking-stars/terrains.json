@@ -495,8 +495,8 @@
         56,
         4
       ],
-      "period": 3600,
-      "open": 1800
+      "period": 2400,
+      "open": 1000
     },
     "staircase": {
       "first": 2,

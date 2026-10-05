@@ -4499,8 +4499,8 @@ var terrains_default = [
         56,
         4
       ],
-      period: 3600,
-      open: 1800
+      period: 2400,
+      open: 1e3
     },
     staircase: {
       first: 2,
@@ -5138,7 +5138,7 @@ function distanceToTrack(point2, t) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-9a248a30f834d8bb";
+var RULES = "race-a763e852121124c9";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

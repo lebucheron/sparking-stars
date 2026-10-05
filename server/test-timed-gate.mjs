@@ -7,7 +7,7 @@ import {walkTo,clickWorld} from './test-drive.mjs';
 const d=JSON.parse(await readFile('games/sparking-stars/terrains.json','utf8')),gate=d[2].timedGate;
 const compiled=await build({entryPoints:['games/sparking-stars/timed-gate.ts'],bundle:true,platform:'node',format:'esm',write:false});
 const {gateOpen,gateAllows}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
-assert(gateOpen(gate,0));assert(!gateOpen(gate,1800));assert(gateOpen(gate,3600));
+assert(gateOpen(gate,0));assert(!gateOpen(gate,gate.open));assert(gateOpen(gate,gate.period));
 assert.equal(gateAllows(gate,1800,[498,190],[498,235]),false,'Closed gate blocks complete segment');assert(gateAllows(gate,0,[498,190],[498,235]));assert(gateAllows(gate,1800,[445,190],[445,235]),'Can be circumvented');assert(gateAllows(gate,1800,[498,210],[498,230]),'Gate closing over Friend permits escape');
 const terrainBundle=await build({entryPoints:['games/sparking-stars/terrains.ts'],bundle:true,platform:'node',format:'esm',write:false});
 const {terrains}=await import('data:text/javascript;base64,'+Buffer.from(terrainBundle.outputFiles[0].text).toString('base64'));
