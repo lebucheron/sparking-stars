@@ -2,8 +2,13 @@ import {project,type WorldPoint} from '@rarefriends/friendsdk/world';
 export type Staircase={first:number;last:number;reach:number};
 export const isStair=(stairs:Staircase|undefined,next:number)=>!!stairs&&next>=stairs.first&&next<=stairs.last;
 /** Only a fresh press on the current tread authorizes its checkpoint. */
-export function stairPress(stairs:Staircase|undefined,route:readonly WorldPoint[],next:number,destination:WorldPoint){
- return isStair(stairs,next)&&Math.hypot(destination[0]-route[next][0],destination[1]-route[next][1])<=30;
+export function stairPress(stairs:Staircase|undefined,route:readonly WorldPoint[],next:number,destination:WorldPoint,screenRadius=60){
+ if(!isStair(stairs,next))return false;
+ const [x,y]=project(...destination),[tx,ty]=project(...route[next]);
+ if(Math.abs(x-tx)>screenRadius||Math.abs(y-ty)>screenRadius)return false;
+ // Overlapping generous targets still select the tread the player actually aimed at.
+ const distance=(i:number)=>{const [a,b]=project(...route[i]);return Math.hypot(x-a,y-b);};
+ return !route.some((_,i)=>isStair(stairs,i)&&i!==next&&distance(i)<distance(next));
 }
 export function drawStaircase(ctx:CanvasRenderingContext2D,stairs:Staircase|undefined,route:readonly WorldPoint[],next:number){
  if(!stairs)return;ctx.save();ctx.lineWidth=2;ctx.strokeStyle='#29262b';

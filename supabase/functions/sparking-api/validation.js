@@ -4348,28 +4348,28 @@ var terrains_default = [
         315
       ],
       [
-        85,
-        250
+        75,
+        260
       ],
       [
-        140,
-        225
+        165,
+        228
       ],
       [
-        85,
-        200
+        75,
+        196
       ],
       [
-        140,
-        175
+        165,
+        164
       ],
       [
-        85,
-        150
+        75,
+        132
       ],
       [
-        140,
-        125
+        165,
+        100
       ],
       [
         85,
@@ -5138,7 +5138,7 @@ function distanceToTrack(point2, t) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-a763e852121124c9";
+var RULES = "race-911a03cbe5af5edb";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

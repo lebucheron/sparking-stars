@@ -20,7 +20,7 @@ export type GameWorldInteraction = Readonly<{
 export type GameWorldProps = {
   dynamicObjects?:()=>{position:WorldPoint;draw:(ctx:CanvasRenderingContext2D)=>void}[];
   canTraverse?:(from:WorldPoint,to:WorldPoint)=>boolean;
-  onDestinationPress?:(destination:WorldPoint)=>WorldPoint|void;
+  onDestinationPress?:(destination:WorldPoint,screenRadius:number)=>WorldPoint|void;
   clickTarget?:{position:WorldPoint;number:number};
   resetRevision?:number;
   relocate?:()=>WorldPoint|null;
@@ -195,7 +195,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
           onControl?.(event.pointerType==='touch'?'touch':event.pointerType==='pen'?'pen':'mouse');
           event.currentTarget.focus(); const rect = event.currentTarget.getBoundingClientRect();
           const destination=unproject(VIEW.x + (event.clientX - rect.left) * VIEW.width / rect.width, VIEW.y + (event.clientY - rect.top) * VIEW.height / rect.height);
-          const pressedTarget=onDestinationPress?.(destination);
+          const pressedTarget=onDestinationPress?.(destination,Math.max(60,24*VIEW.width/rect.width));
           aimAt(pressedTarget??destination);
           if(event.pointerType==='mouse'){clearMouseHold();stick.current={x:0,y:0};heldMouse.current={id:event.pointerId,started:performance.now(),clientX:event.clientX,clientY:event.clientY,x:event.clientX,y:event.clientY,dragged:false,dirty:false,lastAim:performance.now()};event.currentTarget.setPointerCapture(event.pointerId);}
         }}

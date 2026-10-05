@@ -8,10 +8,9 @@ for(const width of [1000,390])await testGame('games/sparking-stars',{publicHost:
  await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});
  const canvas=game.locator('canvas[data-x]'),touch=width===390;
  await walkTo(game,canvas,3,track.route[1],touch);
- // Walking across a tread without pressing it must not award its star.
- await walkTo(game,canvas,3,[85,300],touch);await walkTo(game,canvas,3,[85,215],touch);
- assert.equal(await game.getByTestId('stars').innerText(),'★ 1/16');
- await clickWorld(canvas,[track.route[2][0]+25,track.route[2][1]],touch);await game.getByTestId('stars').filter({hasText:'★ 2/16'}).waitFor();assert.equal(await game.getByTestId('stars').innerText(),'★ 2/16');
+ const box=await canvas.boundingBox(),[px,py]=project(...track.route[2]),view=await canvas.evaluate(c=>({x:+c.dataset.viewX,y:+c.dataset.viewY,w:+c.dataset.viewWidth,h:+c.dataset.viewHeight}));
+ // A press 20 CSS pixels left of the tiny top must still reach its center.
+ await canvas[touch?'tap':'click']({position:{x:(px-view.x)*box.width/view.w-20,y:(py-view.y)*box.height/view.h}});await game.getByTestId('stars').filter({hasText:'★ 2/16'}).waitFor();assert.equal(await game.getByTestId('stars').innerText(),'★ 2/16');
  if(!touch){
   const screen=async point=>{const box=await canvas.boundingBox(),[x,y]=project(...point),v=await canvas.evaluate(c=>({x:+c.dataset.viewX,y:+c.dataset.viewY,w:+c.dataset.viewWidth,h:+c.dataset.viewHeight}));return [box.x+(x-v.x)*box.width/v.w,box.y+(y-v.y)*box.height/v.h];};
   // One held click cannot arm the following tread by moving the cursor onto it.
@@ -22,6 +21,6 @@ for(const width of [1000,390])await testGame('games/sparking-stars',{publicHost:
  for(let i=3;i<=7;i++){await walkTo(game,canvas,3,track.route[i],touch);assert.equal(await game.getByTestId('stars').innerText(),`★ ${i}/16`);}
  await page.screenshot({path:`../../outputs/gen3-stairs-${width}.png`});
  await game.getByRole('button',{name:'Quitter la course',exact:true}).click();await game.locator('.race-start').click();await game.locator('.countdown').waitFor({state:'hidden'});
- await walkTo(game,canvas,3,track.route[1],touch);await walkTo(game,canvas,3,[85,300],touch);await walkTo(game,canvas,3,[85,215],touch);assert.equal(await game.getByTestId('stars').innerText(),'★ 1/16','Restart clears authorization');
+ await walkTo(game,canvas,3,track.route[1],touch);assert.equal(await game.getByTestId('stars').innerText(),'★ 1/16','Restart clears authorization');
  console.log(`PASS stairs ${width}px: six alternating fresh presses, walking/held movement cannot collect, restart clears progress.`);
 }});

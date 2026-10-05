@@ -1,2 +1,2 @@
 // Generated from geometry, validation and SDK physics.
-export const RULES="race-a763e852121124c9";
+export const RULES="race-911a03cbe5af5edb";
