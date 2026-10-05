@@ -4,6 +4,7 @@ import {bushAllows,drawMovingBush} from './moving-bush';
 import {rubyAllows,rubyState,drawMovingRuby} from './moving-ruby';
 import {drawRoadNetwork} from './road-network';
 import {bridgeVisible,drawHiddenBridge} from './hidden-bridge';
+import {isStair,stairPress,drawStaircase} from './staircase';
 import {gateAllows,drawTimedGate} from './timed-gate';
 import {emptyHalloween} from './halloween-reward';
 import { useEffect, useRef, useState, useMemo } from "react";
@@ -98,6 +99,7 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   }
   const bonusHandler=useRef(useBonus);bonusHandler.current=useBonus;const controlHandler=useRef(recordControl);controlHandler.current=recordControl;
   useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.code==="Space"&&!e.repeat&&!(e.target instanceof HTMLButtonElement)&&race.current.running){e.preventDefault();controlHandler.current('keyboard');bonusHandler.current();}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);},[]);
+  const stairArmed=useRef(0);
   const race=useRef<Race>(fresh());
   const [hud,setHud]=useState(fresh),[run,setRun]=useState(0);
   const comparison=(hud.running||hud.done)?config.current:{mode,equipment:mode!=="free"?trainingEquipment:wallet.equipped,tier:mode!=="free"?0:wallet.tier,bonus:mode==="free"&&wallet.bonus!=="none"&&wallet.stock[wallet.bonus]>0?wallet.bonus:"none"};
@@ -118,7 +120,7 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   const start=async()=>{if(paused||!ready||starting)return;
     if(TRACK_PREVIEW&&mode!=='training'){setServerStatus('Cette piste en essai se joue en entraînement.');return;}
     const current=++epoch.current;ticket.current=null;questId.current=crypto.randomUUID();setQuestNotice('');setRetrySend(false);setServerStatus("");runControls.current=controls;inputLog.current=[];
-    race.current=fresh();setHud(fresh());
+    stairArmed.current=0;race.current=fresh();setHud(fresh());
     if(mode==="ranked"){
       setStarting(true);setServerStatus("Préparation du départ côté serveur…");
       try{const run=await publicApi('start',{friendId:String(friendId),equipment:trainingEquipment,rules:RULES,controls});if(current!==epoch.current)return;if(run.generation!==terrain.gen||run.rules!==RULES||run.controls!==controls)throw new Error("Le classement séparé n’est pas encore disponible : réessaie après la mise à jour.");ticket.current=run.id;setServerStatus(`Départ enregistré · ${controlLabel(controls)} · toutes les étoiles, sans bonus.`);}
@@ -133,7 +135,7 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
     if(r.countdown>0){r.countdown=Math.max(0,r.countdown-delta);setHud({...r});return;}
     config.current.boost=Math.max(0,config.current.boost-delta);setNearWall(!broken&&Math.hypot(point[0]-wall[0],point[1]-wall[1])<=85);
     r.elapsed+=delta;if(config.current.mode!=="free"&&trace.current.length<=40000)trace.current.push([r.elapsed,point[0],point[1]]);const target=route[r.next%route.length];
-    if(Math.hypot(point[0]-target[0],point[1]-target[1])<terrain.reach){
+    if(Math.hypot(point[0]-target[0],point[1]-target[1])<(isStair(terrain.staircase,r.next)?terrain.staircase!.reach:terrain.reach)&&(!isStair(terrain.staircase,r.next)||stairArmed.current===r.next)){
       r.next++;setPulse(n=>n+1);setPickup(r.next>route.length?'Tour terminé ✦':r.next===route.length?'Dernière étoile · direction l’arrivée':'★ Étoile attrapée');
       if(config.current.tier>=1&&!config.current.gifted&&r.next===Math.floor(route.length/2)){r.next++;config.current.gifted=true;}
       if(r.next>route.length){r.elapsed=Math.round(r.elapsed);r.running=false;r.done=true;const c=config.current;const key=`${selected}-${c.mode}-${c.equipment}-${c.tier}-${c.bonus}-${runControls.current}`;const finishedId=++lapId.current;if(c.mode!=="ranked")setLaps(old=>[...old,{id:finishedId,friendId:String(friendId),gen:terrain.gen,mode:c.mode==="free"?"free":"training",equipment:c.equipment,tier:c.tier,bonus:c.bonus,controls:runControls.current,ms:r.elapsed,finishedAt:Date.now()}]);const previousBest=records[key]??ghosts.current[ghostId(c.mode,c.equipment,runControls.current)]?.ms;setPersonalBest(previousBest===undefined?"Premier record personnel !":r.elapsed<previousBest?`Nouveau record · −${time(previousBest-r.elapsed)}`:null);setRecords(old=>({...old,[key]:Math.min(old[key]??previousBest??Infinity,r.elapsed)}));const reward=raceReward(r.elapsed,terrain.level,circuitDistance(route),c.equipment);setPrize({...reward,coins:c.mode!=="free"?0:reward.coins});if(c.mode==="free")act({type:"reward",run:c.id,coins:reward.coins});
@@ -156,6 +158,8 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
     ctx.strokeStyle="#000000";ctx.lineWidth=terrain.width+6;ctx.stroke();ctx.strokeStyle="#ffffff";ctx.lineWidth=terrain.width;ctx.stroke();
     ctx.setLineDash([7,10]);ctx.lineWidth=2;ctx.strokeStyle="#000000";ctx.stroke();ctx.setLineDash([]);
     }
+    drawStaircase(ctx,terrain.staircase,route,r.next);
+    ctx.canvas.dataset.stairNext=String(isStair(terrain.staircase,r.next)?r.next:0);
     const showBridge=bridgeVisible(terrain.hiddenBridge,r.elapsed);drawHiddenBridge(ctx,terrain.hiddenBridge,r.elapsed);
     const [fx,fy]=project(...spawn);
     for(let row=0;row<2;row++)for(let col=0;col<6;col++){ctx.fillStyle=(row+col)%2?"#fff":"#000000";ctx.fillRect(fx-24+col*8,fy-8+row*8,8,8);}
@@ -177,7 +181,7 @@ export default function SparkingStars({friendId,client,paused}:GameComponentProp
   if(halloweenOpen)return <HalloweenRace friendId={friendId} paused={paused} cosmetic={halloweenProgress.equipped?'witchhat':cosmetic} trail={trail} onProgress={setHalloweenProgress} onClose={closeHalloween}/>;
   const stars=Math.min(route.length,hud.next-1);
   return <section className="sparking" aria-label="Sparking Stars" inert={paused||undefined}>
-    <GameWorld dynamicObjects={()=>terrain.movingRuby?[{position:rubyState(terrain.movingRuby,race.current.elapsed).position,draw:ctx=>drawMovingRuby(ctx,terrain.movingRuby,race.current.elapsed)}]:[]} canTraverse={(from,to)=>bushAllows(terrain.movingBush,race.current.elapsed,from,to)&&rubyAllows(terrain.movingRuby,race.current.elapsed,from,to)&&gateAllows(terrain.timedGate,race.current.elapsed,from,to)} clickTarget={terrain.gen===6&&hud.running&&hud.countdown===0&&hud.next===10?{position:route[10],number:10}:undefined} onControl={recordControl} preloadWorld={terrain.world} ghost={()=>ghostEnabled&&race.current.running&&race.current.countdown===0?sampleGhost(runGhost.current,race.current.elapsed):null} trail={trail} cosmetic={halloweenProgress.equipped?'witchhat':cosmetic} key={`${friendId}-${selected}`} resetRevision={run} friendId={friendId} world={world} spawn={spawn} interactions={noInteractions} onInteract={()=>{}} focusRevision={used?1:0} paused={paused||progressOpen||questsOpen||shopping||choosing||modesOpen||boardOpen||publicOpen||!hud.running} equipment={comparison.equipment} movementScale={point=>race.current.countdown>0?0:(distanceToTrack(point,terrain)>terrain.width/2 ? Math.max(.38,.8-(terrain.level-1)*.08):1)*(config.current.equipment==="kart"?1.45:config.current.equipment==="rollers"?1.2:1)*(config.current.boost>0?1.6:1)} reducedMotion={reduced} onStep={step} drawTrack={draw}/>
+    <GameWorld onDestinationPress={destination=>{const r=race.current;if(r.running&&r.countdown===0&&stairPress(terrain.staircase,route,r.next,destination))stairArmed.current=r.next;}} dynamicObjects={()=>terrain.movingRuby?[{position:rubyState(terrain.movingRuby,race.current.elapsed).position,draw:ctx=>drawMovingRuby(ctx,terrain.movingRuby,race.current.elapsed)}]:[]} canTraverse={(from,to)=>bushAllows(terrain.movingBush,race.current.elapsed,from,to)&&rubyAllows(terrain.movingRuby,race.current.elapsed,from,to)&&gateAllows(terrain.timedGate,race.current.elapsed,from,to)} clickTarget={terrain.gen===6&&hud.running&&hud.countdown===0&&hud.next===10?{position:route[10],number:10}:undefined} onControl={recordControl} preloadWorld={terrain.world} ghost={()=>ghostEnabled&&race.current.running&&race.current.countdown===0?sampleGhost(runGhost.current,race.current.elapsed):null} trail={trail} cosmetic={halloweenProgress.equipped?'witchhat':cosmetic} key={`${friendId}-${selected}`} resetRevision={run} friendId={friendId} world={world} spawn={spawn} interactions={noInteractions} onInteract={()=>{}} focusRevision={used?1:0} paused={paused||progressOpen||questsOpen||shopping||choosing||modesOpen||boardOpen||publicOpen||!hud.running} equipment={comparison.equipment} movementScale={point=>race.current.countdown>0?0:(distanceToTrack(point,terrain)>terrain.width/2 ? Math.max(.38,.8-(terrain.level-1)*.08):1)*(config.current.equipment==="kart"?1.45:config.current.equipment==="rollers"?1.2:1)*(config.current.boost>0?1.6:1)} reducedMotion={reduced} onStep={step} drawTrack={draw}/>
     {!hud.running&&<nav className="paddock-nav" aria-label="Le paddock"><button disabled={paused||starting} aria-pressed={modesOpen} onClick={()=>{closePanels();setModesOpen(true);}}>Courir</button><button disabled={paused||starting} aria-pressed={progressOpen||questsOpen||boardOpen||publicOpen} onClick={()=>{closePanels();setProgressOpen(true);}}>Progresser</button><button disabled={paused||starting} aria-pressed={shopping} onClick={()=>{closePanels();setShopMessage("");setShopping(true);}}>Garage</button></nav>}
     {hud.running&&<button className="race-leave" aria-label="Quitter la course" disabled={paused||starting} onClick={returnPaddock}>Quitter</button>}
     {pickup&&<div key={pulse} className="star-feedback" data-testid="star-feedback" role="status">{pickup}</div>}

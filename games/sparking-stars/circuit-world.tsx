@@ -20,6 +20,7 @@ export type GameWorldInteraction = Readonly<{
 export type GameWorldProps = {
   dynamicObjects?:()=>{position:WorldPoint;draw:(ctx:CanvasRenderingContext2D)=>void}[];
   canTraverse?:(from:WorldPoint,to:WorldPoint)=>boolean;
+  onDestinationPress?:(destination:WorldPoint)=>void;
   clickTarget?:{position:WorldPoint;number:number};
   resetRevision?:number;
   relocate?:()=>WorldPoint|null;
@@ -38,7 +39,7 @@ export type GameWorldProps = {
 };
 
 /** A game viewport, with canonical pixels, terrain, collision and input; adds no frame or identity flow. */
-export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0,clickTarget,canTraverse,dynamicObjects }: GameWorldProps) {
+export function GameWorld({ friendId, world, spawn, interactions, paused = false, reducedMotion = false, onInteract, onStep, drawTrack, movementScale, equipment, cosmetic, trail, focusRevision, ghost, preloadWorld, onControl, relocate, resetRevision=0,clickTarget,canTraverse,dynamicObjects,onDestinationPress }: GameWorldProps) {
   const resetRequested=useRef<WorldPoint|null>(null);
   const VIEW=useMemo(()=>courseCamera(world),[world]);
   const aspect=VIEW.width/VIEW.height,bufferHeight=Math.round(960/aspect);
@@ -194,6 +195,7 @@ export function GameWorld({ friendId, world, spawn, interactions, paused = false
           onControl?.(event.pointerType==='touch'?'touch':event.pointerType==='pen'?'pen':'mouse');
           event.currentTarget.focus(); const rect = event.currentTarget.getBoundingClientRect();
           const destination=unproject(VIEW.x + (event.clientX - rect.left) * VIEW.width / rect.width, VIEW.y + (event.clientY - rect.top) * VIEW.height / rect.height);
+          onDestinationPress?.(destination);
           aimAt(destination);
           if(event.pointerType==='mouse'){clearMouseHold();stick.current={x:0,y:0};heldMouse.current={id:event.pointerId,started:performance.now(),clientX:event.clientX,clientY:event.clientY,x:event.clientX,y:event.clientY,dragged:false,dirty:false,lastAim:performance.now()};event.currentTarget.setPointerCapture(event.pointerId);}
         }}

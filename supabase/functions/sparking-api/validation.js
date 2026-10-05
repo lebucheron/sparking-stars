@@ -4334,8 +4334,8 @@ var terrains_default = [
   },
   {
     name: "Les Ruines",
-    subtitle: "Des courbes, des vestiges et une porte : garde ton \xE9lan dans les Ruines.",
-    difficulty: "Rythme et trajectoires",
+    subtitle: "Six marches droite-gauche, un clic par marche, puis la porte des Ruines.",
+    difficulty: "Marches et rythme",
     width: 34,
     reach: 17,
     route: [
@@ -4349,11 +4349,27 @@ var terrains_default = [
       ],
       [
         85,
-        230
+        250
       ],
       [
-        155,
-        180
+        140,
+        225
+      ],
+      [
+        85,
+        200
+      ],
+      [
+        140,
+        175
+      ],
+      [
+        85,
+        150
+      ],
+      [
+        140,
+        125
       ],
       [
         85,
@@ -4400,9 +4416,9 @@ var terrains_default = [
     props: [
       [
         "crate",
-        190,
         210,
-        0.9
+        245,
+        0.6
       ],
       [
         "rock",
@@ -4418,7 +4434,7 @@ var terrains_default = [
       ],
       [
         "rock",
-        130,
+        200,
         270,
         0.7
       ],
@@ -4485,6 +4501,11 @@ var terrains_default = [
       ],
       period: 3600,
       open: 1800
+    },
+    staircase: {
+      first: 2,
+      last: 7,
+      reach: 10
     }
   },
   {
@@ -5117,7 +5138,7 @@ function distanceToTrack(point2, t) {
 }
 
 // games/sparking-stars/rules-version.ts
-var RULES = "race-a65d9e9b5081257e";
+var RULES = "race-9a248a30f834d8bb";
 
 // server/validation.ts
 var worlds = terrains.map((t) => {

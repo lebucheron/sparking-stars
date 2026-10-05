@@ -303,3 +303,6 @@ Après le retour du joueur, ajuster cette GEN avant de préparer la suivante. Un
 
 Dernier ajout GEN6 : seconde maison (crate SDK) en [180,318], face à la première en [180,252], pour former un passage sur le retour. Un repère cliquable de 44px apparaît pour la prochaine étoile10 au-dessus du décor. Il vise le sol via createDirectClick ; collecte uniquement à portée, collisions conservées, sans détour automatique. Tests souris/tactile, arrivée et36 simulations physiques passent.
 
+
+## Essai GEN3 — marches alternées
+Six dalles de pierre à gauche (étoiles2 à7) alternent droite/gauche. Chaque dalle demande un nouveau clic ou tap sur sa surface, puis une arrivée à moins de10unités. Le joystick et le clic maintenu gardent la marche normale mais ne valident pas seuls les dalles. Aucun saut ni téléportation : le déplacement et les collisions restent ceux du SDK. Seule la GEN3 change ;16étoiles au total, porte conservée. Publication /gen3-preview/ en entraînement seulement, avec tout Friend GEN1–6 fraîchement vérifié. Le validateur Supabase public reste inchangé ; la future intégration au classement devra vérifier les actions des marches côté serveur. Tests : server/test-staircase.mjs et server/test-gen3-preview.mjs.

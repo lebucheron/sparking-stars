@@ -330,8 +330,8 @@
   },
   {
     "name": "Les Ruines",
-    "subtitle": "Des courbes, des vestiges et une porte : garde ton élan dans les Ruines.",
-    "difficulty": "Rythme et trajectoires",
+    "subtitle": "Six marches droite-gauche, un clic par marche, puis la porte des Ruines.",
+    "difficulty": "Marches et rythme",
     "width": 34,
     "reach": 17,
     "route": [
@@ -345,11 +345,27 @@
       ],
       [
         85,
-        230
+        250
       ],
       [
-        155,
-        180
+        140,
+        225
+      ],
+      [
+        85,
+        200
+      ],
+      [
+        140,
+        175
+      ],
+      [
+        85,
+        150
+      ],
+      [
+        140,
+        125
       ],
       [
         85,
@@ -396,9 +412,9 @@
     "props": [
       [
         "crate",
-        190,
         210,
-        0.9
+        245,
+        0.6
       ],
       [
         "rock",
@@ -414,7 +430,7 @@
       ],
       [
         "rock",
-        130,
+        200,
         270,
         0.7
       ],
@@ -481,6 +497,11 @@
       ],
       "period": 3600,
       "open": 1800
+    },
+    "staircase": {
+      "first": 2,
+      "last": 7,
+      "reach": 10
     }
   },
   {
